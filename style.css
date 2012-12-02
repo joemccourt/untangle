@@ -1,0 +1,12 @@
+canvas{
+	float: center;
+	border:0px;
+}
+
+body{
+	background-color:#888;
+}
+
+div{
+	margin:0.2em 0em;
+}
