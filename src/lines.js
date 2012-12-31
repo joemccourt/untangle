@@ -1,20 +1,16 @@
 function drawLine(line,color){
 	if(typeof color === "undefined"){color = '000';}
 
-	var ctx = JFWL.canvas.getContext("2d");
+	var ctx = JFWL.ctx;
 
-	var w = JFWL.canvas.width;
-	var h = JFWL.canvas.height;
-
-	var x1 = (line[0]+1)*w/2;
-	var y1 = (line[1]+1)*h/2;
-	var x2 = (line[2]+1)*w/2;
-	var y2 = (line[3]+1)*h/2;
+	var canvasCoord1 = JFWL.internalToRenderSpace(line[0],line[1]);
+	var canvasCoord2 = JFWL.internalToRenderSpace(line[2],line[3]);
 
 	ctx.beginPath();
-    ctx.moveTo(x1,y1);
-    ctx.lineTo(x2,y2);
+    ctx.moveTo(Math.round(canvasCoord1[0]),Math.round(canvasCoord1[1]));
+    ctx.lineTo(Math.round(canvasCoord2[0]),Math.round(canvasCoord2[1]));
     ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
     ctx.stroke();
 }
 
@@ -31,20 +27,26 @@ JFWL.moveNode = function(node,x,y){
 function drawNode(node,color){
 	if(typeof color === "undefined"){color = '000';}
 
-	var ctx = JFWL.canvas.getContext("2d");
+	var ctx = JFWL.ctx;
 
-	var w = JFWL.canvas.width;
-	var h = JFWL.canvas.height;
+	var canvasCoord = JFWL.internalToRenderSpace(node.x,node.y);
 
-	var x = (node.x+1)*w/2;
-	var y = (node.y+1)*h/2;
 
 	ctx.beginPath();
-	ctx.arc(x, y, 4, 0, 2 * Math.PI, false);
+
+	  // // create radial gradient
+   //    var grd = ctx.createRadialGradient(canvasCoord[0], canvasCoord[1], 5, canvasCoord[0], canvasCoord[1], 20);
+   //    // light blue
+   //    grd.addColorStop(0, '#8ED6FF');
+   //    // dark blue
+   //    grd.addColorStop(1, '#004CB3');
+
+	ctx.arc(Math.round(canvasCoord[0]), Math.round(canvasCoord[1]), 10, 0, 2 * Math.PI, false);
 	ctx.fillStyle = color;
+	// ctx.fillStyle = grd;
 	ctx.fill();
 	ctx.lineWidth = 0;
-	ctx.strokeStyle = color;
+	ctx.strokeStyle = "000";
     ctx.stroke();
 }
 
@@ -86,12 +88,14 @@ function countLineIntersections(lines,intersects){
 
 function markIntersections(intersects){
 
+	
 	//Brute force
 	var graph = JFWL.graph;
 	var n = graph.lines.length;
 	var lines = genLinesArray(graph);
 
 	//Set intersects to all false initially
+	JFWL.numIntersections = 0;
 	var i,j;
 	var lineI,lineJ;
 	for(i = 0; i < n; i++){
@@ -108,6 +112,7 @@ function markIntersections(intersects){
 				}else if(lineIntersectsLine(lines[i],lines[j])){
 					intersects[i] = true;
 					intersects[j] = true;
+					JFWL.numIntersections++;
 					break;
 				}
 			}
@@ -217,8 +222,8 @@ function genGraph(){
 	JFWL.graph = {nodes:[],lines:[]}
 	var graph = JFWL.graph;
 
-	var numNodes = 10;
-	var numLines = 15;
+	var numNodes = 8;
+	var numLines = 3*numNodes - 6;
 	var i;
 	for(i = 0; i < numNodes; i++){
 		graph.nodes[i] = {};
@@ -234,8 +239,146 @@ function genGraph(){
 			nodeJ = Math.floor(Math.random()*numNodes);
 		}
 
+			
+		//Try again if line already exists
+		var j;
+		for(j = 0; j < graph.lines.length; j++){
+			if(nodeI == graph.lines[j][0] && nodeJ == graph.lines[j][1] || nodeI == graph.lines[j][1] && nodeJ == graph.lines[j][0]){
+				i--;
+				continue;
+			}
+		}
+
 		graph.lines[i] = [nodeI,nodeJ];
 	}
 
 	return graph;
 }
+
+function genGraphPlanarity(n){
+	JFWL.graph = {nodes:[],lines:[]}
+	var graph = JFWL.graph;
+
+	//tmp line angles and intercepts.
+	//TODO: Make sure no collisions
+	var angles = [];
+	var intercepts = [];
+	var i,j;
+	for(i = 0; i < n; i++){
+		angles[i] = Math.random()*2*Math.PI;
+		intercepts[i] = Math.random();
+	}
+
+	//Add nodes
+	var numNodes = 0;
+	for(i = 0; i < n; i++){
+		for(j = i+1; j < n; j++){
+			var xIntercept = (intercepts[j] - intercepts[i]) / (Math.sin(angles[i]) - Math.sin(angles[j]));
+			var yIntercept = xIntercept * Math.sin(angles[i]) + intercepts[i];
+
+			graph.nodes[numNodes] = {};
+			graph.nodes[numNodes].x = xIntercept;
+			graph.nodes[numNodes].y = yIntercept;
+			graph.nodes[numNodes].index = numNodes;
+			graph.nodes[numNodes].index1 = i;
+			graph.nodes[numNodes].index2 = j;
+			numNodes++;
+		}
+	}
+
+	//Add edges
+	for(i = 0; i < n; i++){
+
+		//Collect nodes for every line
+		var nodesOnLine = [];
+		for(j = 0; j < numNodes; j++){
+			if(graph.nodes[j].index1 == i || graph.nodes[j].index2 == i){
+				nodesOnLine.push(graph.nodes[j]);
+			}
+		}
+
+		//Sort array
+		nodesOnLine.sort(function(a,b){
+			if(a.y == b.y){ return a.x > b.x ? 1 : a.x < b.x ? -1 : 0;}
+		  	return a.y > b.y ? 1 : -1;
+		});
+
+		//Connect edges
+		for(p = 1; p < nodesOnLine.length; p++){
+			graph.lines.push([nodesOnLine[p-1].index,nodesOnLine[p].index]);
+		}
+
+	}
+
+	//Orient nodes in circle
+	for(i = 0; i < numNodes; i++){
+		var angle = Math.random() * 2 * Math.PI;
+		graph.nodes[i].x = 0.8 * Math.cos(angle);
+		graph.nodes[i].y = 0.8 * Math.sin(angle);
+	}
+
+
+	// var numNodes = 8;
+	// var numLines = 3*numNodes - 6;
+	// var i;
+	// for(i = 0; i < numNodes; i++){
+	// 	graph.nodes[i] = {};
+	// 	graph.nodes[i].x = (Math.random()-0.5)*2;
+	// 	graph.nodes[i].y = (Math.random()-0.5)*2;
+	// }
+
+	// var nodeI,nodeJ;
+	// for(i = 0; i < numLines; i++){
+	// 	nodeI = Math.floor(Math.random()*numNodes);
+	// 	nodeJ = nodeI;
+	// 	while(nodeJ == nodeI){
+	// 		nodeJ = Math.floor(Math.random()*numNodes);
+	// 	}
+
+			
+	// 	//Try again if line already exists
+	// 	var j;
+	// 	for(j = 0; j < graph.lines.length; j++){
+	// 		if(nodeI == graph.lines[j][0] && nodeJ == graph.lines[j][1] || nodeI == graph.lines[j][1] && nodeJ == graph.lines[j][0]){
+	// 			i--;
+	// 			continue;
+	// 		}
+	// 	}
+
+	// 	graph.lines[i] = [nodeI,nodeJ];
+	// }
+
+	return graph;
+}
+
+// var line1 = [-0.1,-0.5,0.9,0.9];
+// var line2 = [0.7,0,-0.7,0.6];
+
+// var lines = [line1,line2];
+// drawLine(canvas,lines[0]);
+// drawLine(canvas,lines[1]);
+
+
+//var lines = [];
+//var numLines = 1000;
+//var i;
+
+// for(i = 0; i < numLines; i++){
+// 	lines[i] = [];
+
+// 	// uniform random
+// 	// lines[i][0] = (Math.random()-0.5)*2;
+// 	// lines[i][1] = (Math.random()-0.5)*2;
+// 	// lines[i][2] = (Math.random()-0.5)*2;
+// 	// lines[i][3] = (Math.random()-0.5)*2;
+
+// 	//Const length
+// 	lines[i][0] = (Math.random()-0.5)*2;
+// 	lines[i][1] = (Math.random()-0.5)*2;
+
+// 	var length = 0.15;
+// 	var angle = Math.random() * Math.PI * 2;
+
+// 	lines[i][2] = lines[i][0] + length*Math.cos(angle);
+// 	lines[i][3] = lines[i][1] + length*Math.sin(angle);
+// }
