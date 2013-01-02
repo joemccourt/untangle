@@ -6,11 +6,21 @@ function drawLine(line,color){
 	var canvasCoord1 = JFWL.internalToRenderSpace(line[0],line[1]);
 	var canvasCoord2 = JFWL.internalToRenderSpace(line[2],line[3]);
 
+	var lineWidth = JFWL.lineWidth;
+	// var angle = Math.atan2(canvasCoord1[1]-canvasCoord2[1],canvasCoord1[0]-canvasCoord2[0])
+	// var angleNormal = angle+Math.PI/2;
+
+	// var grd = ctx.createLinearGradient(canvasCoord1[0]-lineWidth/2*Math.cos(angleNormal),canvasCoord1[1]-lineWidth/2*Math.sin(angleNormal),canvasCoord1[0]+lineWidth/2*Math.cos(angleNormal),canvasCoord1[1]+lineWidth/2*Math.sin(angleNormal));
+	// grd.addColorStop(0,   'rgba(0,0,0,0)');
+	// grd.addColorStop(0.1, 'rgba(0,0,0,255)');
+	// grd.addColorStop(0.9, 'rgba(0,0,0,255)');
+	// grd.addColorStop(1,   'rgba(0,0,0,0)');
+
 	ctx.beginPath();
-    ctx.moveTo(Math.round(canvasCoord1[0]),Math.round(canvasCoord1[1]));
-    ctx.lineTo(Math.round(canvasCoord2[0]),Math.round(canvasCoord2[1]));
+    ctx.moveTo(canvasCoord1[0],canvasCoord1[1]);
+    ctx.lineTo(canvasCoord2[0],canvasCoord2[1]);
     ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = lineWidth;
     ctx.stroke();
 }
 
@@ -25,29 +35,28 @@ JFWL.moveNode = function(node,x,y){
 }
 
 function drawNode(node,color){
-	if(typeof color === "undefined"){color = '000';}
+	if(typeof color === "undefined"){color = [0,0,0];}
 
 	var ctx = JFWL.ctx;
 
 	var canvasCoord = JFWL.internalToRenderSpace(node.x,node.y);
 
-
+	var nodeRadius = JFWL.nodeRadius;
+	var nodeOutlineWidth = nodeRadius/10;
 	ctx.beginPath();
 
-	  // // create radial gradient
-   //    var grd = ctx.createRadialGradient(canvasCoord[0], canvasCoord[1], 5, canvasCoord[0], canvasCoord[1], 20);
-   //    // light blue
-   //    grd.addColorStop(0, '#8ED6FF');
-   //    // dark blue
-   //    grd.addColorStop(1, '#004CB3');
+	// create radial gradient
+	var grd = ctx.createRadialGradient(canvasCoord[0], canvasCoord[1], nodeRadius-nodeOutlineWidth, canvasCoord[0], canvasCoord[1], nodeRadius);
+	grd.addColorStop(0, 'rgba('+color[0]+','+color[1]+','+color[2]+',255)');
+	grd.addColorStop(1, 'rgba('+color[0]+','+color[1]+','+color[2]+',0)');
 
-	ctx.arc(Math.round(canvasCoord[0]), Math.round(canvasCoord[1]), 10, 0, 2 * Math.PI, false);
-	ctx.fillStyle = color;
-	// ctx.fillStyle = grd;
+	ctx.arc(canvasCoord[0], canvasCoord[1], nodeRadius, 0, 2 * Math.PI, false);
+	// ctx.fillStyle = color;
+	ctx.fillStyle = grd;
 	ctx.fill();
-	ctx.lineWidth = 0;
-	ctx.strokeStyle = "000";
-    ctx.stroke();
+	// ctx.lineWidth = nodeOutlineWidth;
+	// ctx.strokeStyle = grd;
+ //    ctx.stroke();
 }
 
 function drawNodes(color){
@@ -56,9 +65,9 @@ function drawNodes(color){
 	var i;
 	for(i = 0; i < n; i++){
 		if(i == JFWL.hoverNode){
-			drawNode(graph.nodes[i],'00f');
+			drawNode(graph.nodes[i],[0,0,126]);
 		}else if(i == JFWL.dragNode){
-			drawNode(graph.nodes[i],'f00');
+			drawNode(graph.nodes[i],[0,0,255]);
 		}else{
 			drawNode(graph.nodes[i],color);
 		}

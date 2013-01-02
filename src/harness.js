@@ -20,6 +20,10 @@ JFWL.lineDragColor       = [0,0,0];
 JFWL.lineIntersectsColor = [255,0,0];
 JFWL.lineDefaultColor    = [0,0,0];
 
+//Draw sizes
+JFWL.lineWidth = 3;
+JFWL.nodeRadius = 15;
+
 JFWL.internalToRenderSpace = function(x,y){
 	var xRender = (x + 1) * JFWL.getRenderBoxWidth() / 2  + JFWL.renderBox[0];
 	var yRender = (y + 1) * JFWL.getRenderBoxHeight() / 2 + JFWL.renderBox[1];
@@ -56,7 +60,7 @@ window.onload = function(){
 	JFWL.canvas = document.getElementById("demoCanvas");
 	JFWL.ctx = JFWL.canvas.getContext("2d");
 
-	JFWL.graph = genGraphPlanarity(6);//genGraph();
+	JFWL.graph = genGraphPlanarity(4);//genGraph();
 
 	JFWL.initEvents();
 
@@ -67,14 +71,17 @@ window.onload = function(){
 		// while(JFWL.clockTime - start < JFWL.refreshRate / 1000){
 		// 	JFWL.iterations++;
 		// };
-		if(JFWL.numIntersections){
-			console.log("Playing...");
-		}else{
-			console.log("You Win!");
-		}
 
 		if(JFWL.dirtyCanvas){
+
 			JFWL.reDraw();
+
+			if(JFWL.numIntersections){
+				console.log("Playing...");
+			}else{
+				console.log("You Win!");
+			}
+
 			JFWL.dirtyCanvas = false;
 		}
 
@@ -241,9 +248,16 @@ JFWL.drawBackground = function(){
 
 	ctx.fillStyle = "rgba(255,255,255,1)";
 	
-	ctx.clearRect(0,0,JFWL.canvas.width,JFWL.canvas.height);	
+	ctx.clearRect(0,0,JFWL.canvas.width,JFWL.canvas.height);
+
+	var grd = ctx.createLinearGradient(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight()/2);
+	grd.addColorStop(0, 'rgb(149,215,236)');
+	grd.addColorStop(1, 'rgb(29,141,178)');
+	ctx.fillStyle = grd;
+
 	ctx.fillRect(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight());	
 
+	//Box border
 	ctx.beginPath();
     ctx.moveTo(JFWL.renderBox[0],JFWL.renderBox[1]);
     ctx.lineTo(JFWL.renderBox[0],JFWL.renderBox[3]);
