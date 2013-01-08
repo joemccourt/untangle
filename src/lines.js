@@ -19,10 +19,26 @@ function drawLine(line,color){
 	ctx.beginPath();
     ctx.moveTo(canvasCoord1[0],canvasCoord1[1]);
     ctx.lineTo(canvasCoord2[0],canvasCoord2[1]);
+    ctx.closePath();
+
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
     ctx.stroke();
 }
+
+JFWL.drawButtons = function(){
+	var ctx = JFWL.ctx;
+
+	// var i;
+	// for(i = 0; i < JFWL.inGameButtons.length; i++){
+
+	// 	//TODO: draw text
+	// 	var canvasCoords = JFWL.internalToRenderSpace(JFWL.inGameButtons[i].x,JFWL.inGameButtons[i].y);
+	// 	ctx.fillStyle = "rgba(255,0,255,1)";
+	// 	ctx.fillRect(canvasCoords[0],canvasCoords[1],50,10);	
+	// }
+
+};
 
 JFWL.moveNode = function(node,x,y){
 
@@ -38,21 +54,32 @@ function drawNode(node,color){
 	if(typeof color === "undefined"){color = [0,0,0];}
 
 	var ctx = JFWL.ctx;
-
 	var canvasCoord = JFWL.internalToRenderSpace(node.x,node.y);
 
 	var nodeRadius = JFWL.nodeRadius;
 	var nodeOutlineWidth = nodeRadius/10;
-	ctx.beginPath();
 
+	var colorStr = 'rgba('+color[0]+','+color[1]+','+color[2]+',255)';
 	// create radial gradient
-	var grd = ctx.createRadialGradient(canvasCoord[0], canvasCoord[1], nodeRadius-nodeOutlineWidth, canvasCoord[0], canvasCoord[1], nodeRadius);
-	grd.addColorStop(0, 'rgba('+color[0]+','+color[1]+','+color[2]+',255)');
-	grd.addColorStop(1, 'rgba('+color[0]+','+color[1]+','+color[2]+',0)');
+	// var grd = ctx.createRadialGradient(canvasCoord[0], canvasCoord[1], nodeRadius-nodeOutlineWidth, canvasCoord[0], canvasCoord[1], nodeRadius);
+	// grd.addColorStop(0, 'rgba('+color[0]+','+color[1]+','+color[2]+',255)');
+	// grd.addColorStop(1, 'rgba('+color[0]+','+color[1]+','+color[2]+',0)');
+	ctx.shadowColor = 'rgba(0,0,0,0.5)';
 
+	ctx.shadowOffsetX = nodeRadius/5;
+	ctx.shadowOffsetY = nodeRadius/5;
+	ctx.shadowBlur = 10;
+
+	ctx.beginPath();
 	ctx.arc(canvasCoord[0], canvasCoord[1], nodeRadius, 0, 2 * Math.PI, false);
+	ctx.closePath();
+
 	// ctx.fillStyle = color;
-	ctx.fillStyle = grd;
+	ctx.fillStyle = colorStr;
+	//ctx.strokeStyle = colorStr;
+	//ctx.stroke();
+
+
 	ctx.fill();
 	// ctx.lineWidth = nodeOutlineWidth;
 	// ctx.strokeStyle = grd;
@@ -63,6 +90,7 @@ function drawNodes(color){
 	var graph = JFWL.graph;
 	var n = graph.nodes.length;
 	var i;
+	JFWL.ctx.save();
 	for(i = 0; i < n; i++){
 		if(i == JFWL.hoverNode){
 			drawNode(graph.nodes[i],[0,0,126]);
@@ -72,6 +100,7 @@ function drawNodes(color){
 			drawNode(graph.nodes[i],color);
 		}
 	}
+	JFWL.ctx.restore();
 }
 
 function countLineIntersections(lines,intersects){
@@ -319,13 +348,7 @@ function genGraphPlanarity(n){
 
 	}
 
-	//Orient nodes in circle
-	for(i = 0; i < numNodes; i++){
-		var angle = Math.random() * 2 * Math.PI;
-		graph.nodes[i].x = 0.8 * Math.cos(angle);
-		graph.nodes[i].y = 0.8 * Math.sin(angle);
-	}
-
+	JFWL.shuffleGraph();
 
 	// var numNodes = 8;
 	// var numLines = 3*numNodes - 6;
@@ -359,6 +382,26 @@ function genGraphPlanarity(n){
 
 	return graph;
 }
+
+JFWL.shuffleGraph = function(){
+	var graph = JFWL.graph;
+
+	//Orient nodes in circle
+	var numNodes = graph.nodes.length;
+	var usedIndices = [];
+	for(i = 0; i < numNodes; i++){
+		var randomIndex = -1;
+		while(randomIndex == -1 || usedIndices.indexOf(randomIndex) >= 0){
+			randomIndex = Math.random() * numNodes | 0;
+		}
+
+		usedIndices.push(randomIndex);
+		// console.log(randomIndex, usedIndices);
+		var angle = i / numNodes * 2 * Math.PI;
+		graph.nodes[randomIndex].x = 0.8 * Math.cos(angle);
+		graph.nodes[randomIndex].y = 0.8 * Math.sin(angle);
+	}
+};
 
 // var line1 = [-0.1,-0.5,0.9,0.9];
 // var line2 = [0.7,0,-0.7,0.6];

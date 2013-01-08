@@ -20,9 +20,38 @@ JFWL.lineDragColor       = [0,0,0];
 JFWL.lineIntersectsColor = [255,0,0];
 JFWL.lineDefaultColor    = [0,0,0];
 
+// In Game Buttons
+JFWL.inGameButtons = [
+						{
+							text:"hello",
+							x:0.2,
+							y:1
+						},
+						{
+							text:"restart",
+							x:-1,
+							y:-1,
+							operation:"todo"
+						}
+					];
+
 //Draw sizes
 JFWL.lineWidth = 3;
 JFWL.nodeRadius = 15;
+
+JFWL.startGame = function(numLines){
+	if(typeof numLines !== "number"){
+		numLines = 5;
+	}
+
+	JFWL.hoverNode  = -1;
+	JFWL.dragNode   = -1;
+
+	JFWL.graph = {};
+	JFWL.dirtyCanvas = true;
+
+	JFWL.graph = genGraphPlanarity(numLines);
+};
 
 JFWL.internalToRenderSpace = function(x,y){
 	var xRender = (x + 1) * JFWL.getRenderBoxWidth() / 2  + JFWL.renderBox[0];
@@ -60,7 +89,7 @@ window.onload = function(){
 	JFWL.canvas = document.getElementById("demoCanvas");
 	JFWL.ctx = JFWL.canvas.getContext("2d");
 
-	JFWL.graph = genGraphPlanarity(4);//genGraph();
+	JFWL.startGame();
 
 	JFWL.initEvents();
 
@@ -148,6 +177,7 @@ JFWL.reDraw = function(){
 	}
 
 	drawNodes();
+	JFWL.drawButtons();
 };
 
 
@@ -218,9 +248,36 @@ JFWL.initEvents = function(){
 			}
 		}
 
+		//Cursor states
+		if(JFWL.dragNode >= 0){
+			$('body').css('cursor', 'move');
+		}else if(JFWL.hoverNode >= 0){
+			$('body').css('cursor', 'hand');
+		}else{
+			$('body').css('cursor', 'default');
+		}
+
 		//console.log(2*x/w-1,2*y/h-1);
 	});
+
+	$(document).keypress(function (e) {
+		console.log(e.charCode);
+
+		//114 = 'r'
+		//115 = 's'
+
+		//Restart
+		if(e.charCode == 114){
+			JFWL.startGame();
+		}else if(e.charCode == 115){
+			JFWL.dirtyCanvas = true;
+			JFWL.shuffleGraph();
+		}
+	});
+
 };
+
+
 
 function hoverAt(x,y){
 	var graph = JFWL.graph;
@@ -241,6 +298,35 @@ function hoverAt(x,y){
 		JFWL.dirtyCanvas = true;
 		JFWL.hoverNode = minIndex;
 	}
+
+	/*  //Below code is too complex
+		for(i = 0; i < graph.nodes.length + JFWL.inGameButtons.length; i++){
+			if(i < graph.nodes.length){
+				dist = Math.sqrt(Math.pow(graph.nodes[i].x - x, 2) + Math.pow(graph.nodes[i].y - y, 2));
+			}else{
+				//Todo: make this distance to box
+				var b = i - graph.nodes.length;
+				dist = Math.sqrt(Math.pow(JFWL.inGameButtons[b].x - x, 2) + Math.pow(JFWL.inGameButtons[b].y - y, 2));
+			}
+
+			if(dist < minDist && dist < selectRadius){
+				minIndex = i;
+				minDist  = dist;
+			}
+		}
+
+		if(JFWL.hoverNode != minIndex){
+			JFWL.dirtyCanvas = true;
+
+			if(minIndex < graph.nodes.length){
+				JFWL.hoverNode = minIndex;
+			}else{
+				JFWL.buttonHover = minIndex - graph.nodes.length;
+				console.log(JFWL.inGameButtons[JFWL.buttonHover].text);
+				JFWL.hoverNode = -1;
+			}
+		}
+	*/
 };
 
 JFWL.drawBackground = function(){
@@ -259,12 +345,13 @@ JFWL.drawBackground = function(){
 
 	//Box border
 	ctx.beginPath();
-    ctx.moveTo(JFWL.renderBox[0],JFWL.renderBox[1]);
-    ctx.lineTo(JFWL.renderBox[0],JFWL.renderBox[3]);
-    ctx.lineTo(JFWL.renderBox[2],JFWL.renderBox[3]);
-    ctx.lineTo(JFWL.renderBox[2],JFWL.renderBox[1]);
-    ctx.lineTo(JFWL.renderBox[0],JFWL.renderBox[1]);
+    ctx.moveTo(JFWL.renderBox[0]-0.5,JFWL.renderBox[1]-0.5);
+    ctx.lineTo(JFWL.renderBox[0]-0.5,JFWL.renderBox[3]+0.5);
+    ctx.lineTo(JFWL.renderBox[2]+0.5,JFWL.renderBox[3]+0.5);
+    ctx.lineTo(JFWL.renderBox[2]+0.5,JFWL.renderBox[1]-0.5);
+    ctx.lineTo(JFWL.renderBox[0]-0.5,JFWL.renderBox[1]-0.5);
+    ctx.closePath();
     ctx.strokeStyle = '000';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.stroke();
 };
