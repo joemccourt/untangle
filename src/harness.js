@@ -13,6 +13,8 @@ JFWL.clickOffset = {x:0,y:0};
 JFWL.renderBox = [0,0,0,0];
 JFWL.numIntersections = 0;
 JFWL.dirtyCanvas = true;  //Keep track of when state has changed and need to update canvas
+JFWL.paused = false;
+
 
 // State Colors
 JFWL.lineHoverColor      = [0,0,0];
@@ -32,6 +34,18 @@ JFWL.inGameButtons = [
 							x:-1,
 							y:-1,
 							operation:"todo"
+						}
+					];
+
+//Menu Options
+JFWL.menuOptions = [
+						{
+							text:"Restart (r)",
+							operation:"restart"
+						},
+						{
+							text:"PlaceHolder",
+							operation:"todod"
 						}
 					];
 
@@ -125,7 +139,7 @@ JFWL.reDraw = function(){
 	var w = JFWL.canvas.width;
 	var h = JFWL.canvas.height;
 
-	JFWL.renderBox = [20,20,w-20,h-20];
+	JFWL.renderBox = [w,30,30-30,h-30];
 
 	JFWL.drawBackground();		
 	// var newCanvasData = context.createImageData(w, h); // blank
@@ -184,6 +198,8 @@ JFWL.reDraw = function(){
 //Events
 JFWL.initEvents = function(){
 	$(document).mouseup(function (e) {
+		if(JFWL.paused){return;}
+
 		JFWL.mouse = "up";
 		if(JFWL.dragNodeMoved){
 			JFWL.dragNode = -1;
@@ -191,6 +207,7 @@ JFWL.initEvents = function(){
 	});
 
 	$(document).mousedown(function (e) {
+		if(JFWL.paused){return;}
 		JFWL.mouse = "down";
 
 		if(JFWL.dragNode < 0 && JFWL.hoverNode >= 0){
@@ -218,6 +235,7 @@ JFWL.initEvents = function(){
 	});
 
 	$(document).mousemove(function (e) {
+		if(JFWL.paused){return;}
 
 		var offset = $("#demoCanvas").offset();
 		var x = e.pageX - offset.left;
@@ -263,6 +281,7 @@ JFWL.initEvents = function(){
 	$(document).keypress(function (e) {
 		console.log(e.charCode);
 
+		//112 = 'p'
 		//114 = 'r'
 		//115 = 's'
 
@@ -272,6 +291,15 @@ JFWL.initEvents = function(){
 		}else if(e.charCode == 115){
 			JFWL.dirtyCanvas = true;
 			JFWL.shuffleGraph();
+		}else if(e.charCode == 112){
+			if(!JFWL.paused){
+				$('body').css('cursor', 'default');
+				JFWL.paused = true;
+				JFWL.pauseScreen();
+			}else{
+				JFWL.dirtyCanvas = true;
+				JFWL.paused = false;
+			}
 		}
 	});
 
@@ -332,7 +360,7 @@ function hoverAt(x,y){
 JFWL.drawBackground = function(){
 	var ctx = JFWL.ctx;
 
-	ctx.fillStyle = "rgba(255,255,255,1)";
+	//ctx.fillStyle = "rgba(255,255,255,1)";
 	
 	ctx.clearRect(0,0,JFWL.canvas.width,JFWL.canvas.height);
 
@@ -354,4 +382,62 @@ JFWL.drawBackground = function(){
     ctx.strokeStyle = '000';
     ctx.lineWidth = 3;
     ctx.stroke();
+};
+
+JFWL.pauseScreen = function(){
+	var ctx = JFWL.ctx;
+
+	//Gray out renderBox
+	ctx.fillStyle = "rgba(0,0,0,0.3)";
+	ctx.fillRect(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight());
+
+	//Menu Box
+	ctx.font = '64px Helvetica';
+
+	var minWidth = 40;
+	var maxWidth = 0;
+
+	var i;
+	for(i = 0; i < JFWL.menuOptions.length; i++){
+		var length = ctx.measureText(JFWL.menuOptions[i].text).width;
+		JFWL.menuOptions[i].width = length;
+		if(length > maxWidth){maxWidth = length;}
+	}
+
+
+	var width = (maxWidth + minWidth)+0.5|0;
+	var height = 400;
+
+	var centerX = (JFWL.renderBox[0] + JFWL.renderBox[2]) / 2;
+	var centerY = (JFWL.renderBox[1] + JFWL.renderBox[3]) / 2;
+
+	var x1 = centerX-width/2 | 0;
+	var y1 = centerY-height/2 | 0;
+	var x2 = x1 + width;
+	var y2 = y1 + height;
+	ctx.fillStyle = "rgba(0,0,0,0.93)";
+	ctx.fillRect(x1+0.5, y1+0.5, width, height);
+
+	//Box border
+	ctx.beginPath();
+	ctx.moveTo(x1-0.5,y1-0.5);
+	ctx.lineTo(x1-0.5,y2+0.5);
+	ctx.lineTo(x2+0.5,y2+0.5);
+	ctx.lineTo(x2+0.5,y1-0.5);
+	ctx.lineTo(x1-0.5,y1-0.5);
+	ctx.closePath();
+	ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+	ctx.lineWidth = 1;
+	ctx.stroke();
+
+	//Draw options
+	ctx.textAlign = 'start';
+	ctx.textBaseline = 'top';
+
+	ctx.fillStyle = 'fff';
+	for(i = 0; i < JFWL.menuOptions.length; i++){
+		var option = JFWL.menuOptions[i];
+		ctx.fillText(option.text,x1+(width-option.width)/2,y1+50*i);
+	}
+
 };
