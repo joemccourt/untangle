@@ -15,6 +15,9 @@ JFWL.numIntersections = 0;
 JFWL.dirtyCanvas = true;  //Keep track of when state has changed and need to update canvas
 JFWL.paused = false;
 
+JFWL.pauseBoxHeight = 400;
+JFWL.pauseOptionOverIndex = -1;
+
 
 // State Colors
 JFWL.lineHoverColor      = [0,0,0];
@@ -40,12 +43,16 @@ JFWL.inGameButtons = [
 //Menu Options
 JFWL.menuOptions = [
 						{
-							text:"Restart (r)",
+							text:"Resume",
+							operation:"unpause"
+						},
+						{
+							text:"Restart Level",
 							operation:"restart"
 						},
 						{
-							text:"PlaceHolder",
-							operation:"todod"
+							text:"Main Menu (exit)",
+							operation:"menu"
 						}
 					];
 
@@ -119,6 +126,10 @@ window.onload = function(){
 
 			JFWL.reDraw();
 
+			if(JFWL.paused){
+				JFWL.pauseScreen();
+			}
+
 			if(JFWL.numIntersections){
 				console.log("Playing...");
 			}else{
@@ -139,7 +150,7 @@ JFWL.reDraw = function(){
 	var w = JFWL.canvas.width;
 	var h = JFWL.canvas.height;
 
-	JFWL.renderBox = [w,30,30-30,h-30];
+	JFWL.renderBox = [30,30,w-30,h-30];
 
 	JFWL.drawBackground();		
 	// var newCanvasData = context.createImageData(w, h); // blank
@@ -207,18 +218,18 @@ JFWL.initEvents = function(){
 	});
 
 	$(document).mousedown(function (e) {
-		if(JFWL.paused){return;}
 		JFWL.mouse = "down";
+
+		var offset = $("#demoCanvas").offset();
+		var x = e.pageX - offset.left;
+		var y = e.pageY - offset.top;
+
+		if(JFWL.paused){JFWL.pausedMouseDown(x,y);return;}
 
 		if(JFWL.dragNode < 0 && JFWL.hoverNode >= 0){
 			JFWL.dragNode = JFWL.hoverNode;
 			JFWL.hoverNode = -1;
 			JFWL.dirtyCanvas = true;
-
-
-			var offset = $("#demoCanvas").offset();
-			var x = e.pageX - offset.left;
-			var y = e.pageY - offset.top;
 
 			//Convert to internal coord system
 			var internalPoint = JFWL.renderToInternalSpace(x,y);
@@ -235,16 +246,18 @@ JFWL.initEvents = function(){
 	});
 
 	$(document).mousemove(function (e) {
-		if(JFWL.paused){return;}
 
 		var offset = $("#demoCanvas").offset();
 		var x = e.pageX - offset.left;
 		var y = e.pageY - offset.top;
 
+		if(JFWL.paused){JFWL.pausedMouseMove(x,y);return;}
+
 		//Convert to intenal coord system
 		var internalPoint = JFWL.renderToInternalSpace(x,y);
 		x = internalPoint[0];
 		y = internalPoint[1];
+
 
 		if(JFWL.dragNode < 0){
 
@@ -286,20 +299,23 @@ JFWL.initEvents = function(){
 		//115 = 's'
 
 		//Restart
-		if(e.charCode == 114){
-			JFWL.startGame();
-		}else if(e.charCode == 115){
-			JFWL.dirtyCanvas = true;
-			JFWL.shuffleGraph();
-		}else if(e.charCode == 112){
+		if(e.charCode == 112){
 			if(!JFWL.paused){
 				$('body').css('cursor', 'default');
+				JFWL.dirtyCanvas = true;
 				JFWL.paused = true;
-				JFWL.pauseScreen();
 			}else{
 				JFWL.dirtyCanvas = true;
 				JFWL.paused = false;
 			}
+		}else if(e.charCode == 114){
+			JFWL.dirtyCanvas = true;
+			JFWL.startGame();
+			JFWL.paused = false;
+		}else if(e.charCode == 115){
+			JFWL.dirtyCanvas = true;
+			JFWL.shuffleGraph();
+			JFWL.paused = false;
 		}
 	});
 
@@ -357,6 +373,36 @@ function hoverAt(x,y){
 	*/
 };
 
+JFWL.pausedMouseMove = function(x,y){
+	var i;
+	var initialIndex = JFWL.pauseOptionOverIndex;
+	JFWL.pauseOptionOverIndex = -1;
+
+	for(i = 0; i < JFWL.menuOptions.length; i++){
+		var option = JFWL.menuOptions[i];
+
+		if(x > option.left && x < option.left + option.width){
+			if(y > option.top && y < option.top + option.height){
+				JFWL.pauseOptionOverIndex = i;
+			}
+		}
+	}
+
+	//Check if no longer over option
+	if(JFWL.pauseOptionOverIndex != initialIndex){
+		JFWL.dirtyCanvas = true;
+	}
+};
+
+JFWL.pausedMouseDown = function(x,y){
+	JFWL.pausedMouseMove(x,y);
+
+	if(JFWL.pauseOptionOverIndex != -1){
+		var option = JFWL.menuOptions[JFWL.pauseOptionOverIndex];
+		console.log("Do: ", option.operation);
+	}
+}
+
 JFWL.drawBackground = function(){
 	var ctx = JFWL.ctx;
 
@@ -386,27 +432,31 @@ JFWL.drawBackground = function(){
 
 JFWL.pauseScreen = function(){
 	var ctx = JFWL.ctx;
+	ctx.save();
 
 	//Gray out renderBox
 	ctx.fillStyle = "rgba(0,0,0,0.3)";
 	ctx.fillRect(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight());
 
 	//Menu Box
-	ctx.font = '64px Helvetica';
+	ctx.font = '36px Verdana';
 
 	var minWidth = 40;
 	var maxWidth = 0;
+
+	var roughHeight = 1.4*ctx.measureText("m").width;
 
 	var i;
 	for(i = 0; i < JFWL.menuOptions.length; i++){
 		var length = ctx.measureText(JFWL.menuOptions[i].text).width;
 		JFWL.menuOptions[i].width = length;
+		JFWL.menuOptions[i].height = roughHeight;
 		if(length > maxWidth){maxWidth = length;}
 	}
 
 
 	var width = (maxWidth + minWidth)+0.5|0;
-	var height = 400;
+	var height = JFWL.pauseBoxHeight ;
 
 	var centerX = (JFWL.renderBox[0] + JFWL.renderBox[2]) / 2;
 	var centerY = (JFWL.renderBox[1] + JFWL.renderBox[3]) / 2;
@@ -435,9 +485,25 @@ JFWL.pauseScreen = function(){
 	ctx.textBaseline = 'top';
 
 	ctx.fillStyle = 'fff';
+	var yStart = y1;
 	for(i = 0; i < JFWL.menuOptions.length; i++){
 		var option = JFWL.menuOptions[i];
-		ctx.fillText(option.text,x1+(width-option.width)/2,y1+50*i);
+		
+		if(JFWL.pauseOptionOverIndex == i){
+			ctx.shadowColor = 'rgba(255,255,255,0.7)';
+			ctx.shadowBlur = 12;
+		}else{
+			ctx.shadowColor = undefined;
+			ctx.shadowBlur = 0;
+		}
+
+		option.left = x1+(width-option.width)/2;
+		option.top = yStart+option.height;
+		ctx.fillText(option.text,option.left,option.top);
+
+
+		yStart += option.height;
 	}
 
+	ctx.restore();
 };
