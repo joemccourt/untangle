@@ -14,10 +14,12 @@ JFWL.renderBox = [0,0,0,0];
 JFWL.numIntersections = 0;
 JFWL.dirtyCanvas = true;  //Keep track of when state has changed and need to update canvas
 JFWL.paused = false;
-
+JFWL.menu = false;
 JFWL.pauseBoxHeight = 400;
 JFWL.pauseOptionOverIndex = -1;
+JFWL.menuOptionOverIndex = -1;
 
+JFWL.level = 4;
 
 // State Colors
 JFWL.lineHoverColor      = [0,0,0];
@@ -41,10 +43,26 @@ JFWL.inGameButtons = [
 					];
 
 //Menu Options
+
 JFWL.menuOptions = [
 						{
+							text:"Untangle",
+							operation:"none"
+						},
+						{
+							text:"Start",
+							operation:"start"
+						},
+						{
+							text:"Credits",
+							operation:"credits"
+						}
+					];
+
+JFWL.pauseOptions = [
+						{
 							text:"Resume",
-							operation:"unpause"
+							operation:"resume"
 						},
 						{
 							text:"Restart Level",
@@ -62,7 +80,7 @@ JFWL.nodeRadius = 15;
 
 JFWL.startGame = function(numLines){
 	if(typeof numLines !== "number"){
-		numLines = 5;
+		numLines = JFWL.level;
 	}
 
 	JFWL.hoverNode  = -1;
@@ -124,16 +142,26 @@ window.onload = function(){
 
 		if(JFWL.dirtyCanvas){
 
-			JFWL.reDraw();
-
-			if(JFWL.paused){
-				JFWL.pauseScreen();
-			}
-
-			if(JFWL.numIntersections){
-				console.log("Playing...");
+			if(JFWL.onMenuScreen){
+				JFWL.drawMenuScreen();
 			}else{
-				console.log("You Win!");
+				JFWL.reDraw();
+
+				if(JFWL.paused){
+					JFWL.pauseScreen();
+				}
+
+				if(JFWL.numIntersections){
+					console.log("Playing...");
+				}else{
+					console.log("You Win!");
+
+					//TODO: win condition animations and screen
+					JFWL.level++;
+					JFWL.startGame();
+					JFWL.reDraw();
+
+				}
 			}
 
 			JFWL.dirtyCanvas = false;
@@ -225,6 +253,7 @@ JFWL.initEvents = function(){
 		var y = e.pageY - offset.top;
 
 		if(JFWL.paused){JFWL.pausedMouseDown(x,y);return;}
+		if(JFWL.onMenuScreen){JFWL.menuMouseDown(x,y);return;}
 
 		if(JFWL.dragNode < 0 && JFWL.hoverNode >= 0){
 			JFWL.dragNode = JFWL.hoverNode;
@@ -252,6 +281,7 @@ JFWL.initEvents = function(){
 		var y = e.pageY - offset.top;
 
 		if(JFWL.paused){JFWL.pausedMouseMove(x,y);return;}
+		if(JFWL.onMenuScreen){JFWL.menuMouseMove(x,y);return;}
 
 		//Convert to intenal coord system
 		var internalPoint = JFWL.renderToInternalSpace(x,y);
@@ -378,12 +408,13 @@ JFWL.pausedMouseMove = function(x,y){
 	var initialIndex = JFWL.pauseOptionOverIndex;
 	JFWL.pauseOptionOverIndex = -1;
 
-	for(i = 0; i < JFWL.menuOptions.length; i++){
-		var option = JFWL.menuOptions[i];
+	for(i = 0; i < JFWL.pauseOptions.length; i++){
+		var option = JFWL.pauseOptions[i];
 
 		if(x > option.left && x < option.left + option.width){
 			if(y > option.top && y < option.top + option.height){
 				JFWL.pauseOptionOverIndex = i;
+				$('body').css('cursor', 'hand');
 			}
 		}
 	}
@@ -392,16 +423,82 @@ JFWL.pausedMouseMove = function(x,y){
 	if(JFWL.pauseOptionOverIndex != initialIndex){
 		JFWL.dirtyCanvas = true;
 	}
+
+	if(JFWL.pauseOptionOverIndex == -1){
+		$('body').css('cursor', 'default');
+	}
 };
 
 JFWL.pausedMouseDown = function(x,y){
 	JFWL.pausedMouseMove(x,y);
 
 	if(JFWL.pauseOptionOverIndex != -1){
-		var option = JFWL.menuOptions[JFWL.pauseOptionOverIndex];
+		var option = JFWL.pauseOptions[JFWL.pauseOptionOverIndex];
 		console.log("Do: ", option.operation);
+		$('body').css('cursor', 'default');
+
+		if(option.operation == "resume"){
+			JFWL.paused = false;
+			JFWL.dirtyCanvas = true;
+		}else if(option.operation == "restart"){
+			JFWL.dirtyCanvas = true;
+			JFWL.paused = false;
+			JFWL.startGame();
+		}else if(option.operation == "menu"){
+			JFWL.paused = false;
+			JFWL.dirtyCanvas = true;
+			JFWL.onMenuScreen = true;
+		}
 	}
-}
+};
+
+JFWL.menuMouseMove = function(x,y){
+	var i;
+	var initialIndex = JFWL.menuOptionOverIndex;
+	JFWL.menuOptionOverIndex = -1;
+
+	for(i = 0; i < JFWL.menuOptions.length; i++){
+		var option = JFWL.menuOptions[i];
+
+		if(x > option.left && x < option.left + option.width){
+			if(y > option.top && y < option.top + option.height){
+				JFWL.menuOptionOverIndex = i;
+				$('body').css('cursor', 'hand');
+			}
+		}
+	}
+
+	//Check if no longer over option
+	if(JFWL.menuOptionOverIndex != initialIndex){
+		JFWL.dirtyCanvas = true;
+	}
+
+	if(JFWL.menuOptionOverIndex == -1){
+		$('body').css('cursor', 'default');
+	}
+};
+
+JFWL.menuMouseDown = function(x,y){
+	JFWL.pausedMouseMove(x,y);
+
+	if(JFWL.menuOptionOverIndex != -1){
+		var option = JFWL.menuOptions[JFWL.menuOptionOverIndex];
+		console.log("Do: ", option.operation);
+
+		if(option.operation == "resume"){
+			JFWL.paused = false;
+			JFWL.dirtyCanvas = true;
+		}else if(option.operation == "start"){
+			JFWL.dirtyCanvas = true;
+			JFWL.onMenuScreen = false;
+			JFWL.startGame();
+		}else if(option.operation == "menu"){
+			JFWL.paused = false;
+			JFWL.dirtyCanvas = true;
+			JFWL.onMenuScreen = true;
+		}
+	}
+};
 
 JFWL.drawBackground = function(){
 	var ctx = JFWL.ctx;
@@ -447,10 +544,10 @@ JFWL.pauseScreen = function(){
 	var roughHeight = 1.4*ctx.measureText("m").width;
 
 	var i;
-	for(i = 0; i < JFWL.menuOptions.length; i++){
-		var length = ctx.measureText(JFWL.menuOptions[i].text).width;
-		JFWL.menuOptions[i].width = length;
-		JFWL.menuOptions[i].height = roughHeight;
+	for(i = 0; i < JFWL.pauseOptions.length; i++){
+		var length = ctx.measureText(JFWL.pauseOptions[i].text).width;
+		JFWL.pauseOptions[i].width = length;
+		JFWL.pauseOptions[i].height = roughHeight;
 		if(length > maxWidth){maxWidth = length;}
 	}
 
@@ -486,8 +583,8 @@ JFWL.pauseScreen = function(){
 
 	ctx.fillStyle = 'fff';
 	var yStart = y1;
-	for(i = 0; i < JFWL.menuOptions.length; i++){
-		var option = JFWL.menuOptions[i];
+	for(i = 0; i < JFWL.pauseOptions.length; i++){
+		var option = JFWL.pauseOptions[i];
 		
 		if(JFWL.pauseOptionOverIndex == i){
 			ctx.shadowColor = 'rgba(255,255,255,0.7)';
@@ -501,6 +598,77 @@ JFWL.pauseScreen = function(){
 		option.top = yStart+option.height;
 		ctx.fillText(option.text,option.left,option.top);
 
+
+		yStart += option.height;
+	}
+
+	ctx.restore();
+};
+
+JFWL.drawMenuScreen = function(){
+	var ctx = JFWL.ctx;
+	ctx.save();
+
+	//Gray out renderBox
+	// ctx.fillStyle = "rgba(0,0,0,0.3)";
+	// ctx.fillRect(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight());
+
+	//Menu Box
+	ctx.font = '36px Verdana';
+
+	var width = JFWL.getRenderBoxWidth();
+	var height = JFWL.getRenderBoxHeight();
+
+	//Menu Box
+	var roughHeight = 1.4*ctx.measureText("m").width;
+
+	var i;
+	for(i = 0; i < JFWL.menuOptions.length; i++){
+		var length = ctx.measureText(JFWL.menuOptions[i].text).width;
+		JFWL.menuOptions[i].width = length;
+		JFWL.menuOptions[i].height = roughHeight;
+	}
+
+	var x1 = JFWL.renderBox[0];
+	var y1 = JFWL.renderBox[1];
+	var x2 = JFWL.renderBox[2];
+	var y2 = JFWL.renderBox[3];
+
+	ctx.fillStyle = "rgba(0,0,0,1)";
+	ctx.fillRect(x1+0.5, y1+0.5, width, height);
+
+	//Box border
+	ctx.beginPath();
+	ctx.moveTo(x1-0.5,y1-0.5);
+	ctx.lineTo(x1-0.5,y2+0.5);
+	ctx.lineTo(x2+0.5,y2+0.5);
+	ctx.lineTo(x2+0.5,y1-0.5);
+	ctx.lineTo(x1-0.5,y1-0.5);
+	ctx.closePath();
+	ctx.strokeStyle = 'rgba(255,255,255,1)';
+	ctx.lineWidth = 3;
+	ctx.stroke();
+
+	//Draw options
+	ctx.textAlign = 'start';
+	ctx.textBaseline = 'top';
+
+	ctx.fillStyle = 'fff';
+	var yStart = y1;
+	for(i = 0; i < JFWL.menuOptions.length; i++){
+		var option = JFWL.menuOptions[i];
+		
+		if(JFWL.menuOptionOverIndex == i){
+			ctx.shadowColor = 'rgba(255,255,255,0.7)';
+			ctx.shadowBlur = 12;
+		}else{
+			ctx.shadowColor = undefined;
+			ctx.shadowBlur = 0;
+		}
+
+		option.left = x1+(width-option.width)/2;
+		option.top = yStart+option.height;
+		ctx.fillText(option.text,option.left,option.top);
 
 		yStart += option.height;
 	}
