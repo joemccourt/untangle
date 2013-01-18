@@ -15,9 +15,11 @@ JFWL.numIntersections = 0;
 JFWL.dirtyCanvas = true;  //Keep track of when state has changed and need to update canvas
 JFWL.paused = false;
 JFWL.menu = false;
+JFWL.wonGame = false;
 JFWL.pauseBoxHeight = 400;
 JFWL.pauseOptionOverIndex = -1;
 JFWL.menuOptionOverIndex = -1;
+JFWL.checkWon = false;
 
 JFWL.level = 4;
 
@@ -74,6 +76,21 @@ JFWL.pauseOptions = [
 						}
 					];
 
+JFWL.winOptions = [
+						{
+							text:"Next Level",
+							operation:"nextlevel"
+						},
+						{
+							text:"Resume Level",
+							operation:"resume"
+						},
+						{
+							text:"Main Menu (exit)",
+							operation:"menu"
+						}
+					];
+
 //Draw sizes
 JFWL.lineWidth = 3;
 JFWL.nodeRadius = 15;
@@ -88,8 +105,11 @@ JFWL.startGame = function(numLines){
 
 	JFWL.graph = {};
 	JFWL.dirtyCanvas = true;
+	JFWL.wonGame = false;
 
 	JFWL.graph = genGraphPlanarity(numLines);
+
+	//TODO: check if game already one after graph generation
 };
 
 JFWL.internalToRenderSpace = function(x,y){
@@ -144,30 +164,25 @@ window.onload = function(){
 
 			if(JFWL.onMenuScreen){
 				JFWL.drawMenuScreen();
+			}else if(JFWL.paused){
+				JFWL.reDraw();
+				JFWL.pauseScreen();
+				JFWL.dirtyCanvas = false;
 			}else{
 				JFWL.reDraw();
 
-				if(JFWL.paused){
-					JFWL.pauseScreen();
-				}
-
-				if(JFWL.numIntersections){
-					console.log("Playing...");
-				}else{
-					console.log("You Win!");
-
-					//TODO: win condition animations and screen
-					JFWL.level++;
-					JFWL.startGame();
-					JFWL.reDraw();
-
+				if(JFWL.checkWon){
+					JFWL.checkWon = false;
+					if(JFWL.numIntersections){
+						console.log("Playing...");
+						JFWL.dirtyCanvas = false;
+					}else{
+						console.log("You Win!");
+						JFWL.winGame();
+					}
 				}
 			}
-
-			JFWL.dirtyCanvas = false;
 		}
-
-		//JFWL.display();
 	},0);
 };
 
@@ -242,6 +257,7 @@ JFWL.initEvents = function(){
 		JFWL.mouse = "up";
 		if(JFWL.dragNodeMoved){
 			JFWL.dragNode = -1;
+			JFWL.checkWon = true;
 		}
 	});
 
@@ -269,6 +285,7 @@ JFWL.initEvents = function(){
 			JFWL.clickOffset.y = y - JFWL.graph.nodes[JFWL.dragNode].y;
 		}else{
 			JFWL.dragNode = -1;
+			JFWL.checkWon = true;
 		}
 
 		JFWL.dragNodeMoved = false;
@@ -352,7 +369,6 @@ JFWL.initEvents = function(){
 };
 
 
-
 function hoverAt(x,y){
 	var graph = JFWL.graph;
 
@@ -405,11 +421,18 @@ function hoverAt(x,y){
 
 JFWL.pausedMouseMove = function(x,y){
 	var i;
+	var options;
+	if(JFWL.wonGame == true){
+		options = JFWL.winOptions;
+	}else{
+		options = JFWL.pauseOptions;
+	}
+
 	var initialIndex = JFWL.pauseOptionOverIndex;
 	JFWL.pauseOptionOverIndex = -1;
 
-	for(i = 0; i < JFWL.pauseOptions.length; i++){
-		var option = JFWL.pauseOptions[i];
+	for(i = 0; i < options.length; i++){
+		var option = options[i];
 
 		if(x > option.left && x < option.left + option.width){
 			if(y > option.top && y < option.top + option.height){
@@ -431,18 +454,32 @@ JFWL.pausedMouseMove = function(x,y){
 
 JFWL.pausedMouseDown = function(x,y){
 	JFWL.pausedMouseMove(x,y);
+	
+	var options;
+	if(JFWL.wonGame == true){
+		options = JFWL.winOptions;
+	}else{
+		options = JFWL.pauseOptions;
+	}
 
 	if(JFWL.pauseOptionOverIndex != -1){
-		var option = JFWL.pauseOptions[JFWL.pauseOptionOverIndex];
+		var option = options[JFWL.pauseOptionOverIndex];
 		console.log("Do: ", option.operation);
 		$('body').css('cursor', 'default');
 
 		if(option.operation == "resume"){
 			JFWL.paused = false;
 			JFWL.dirtyCanvas = true;
+		}else if(option.operation == "nextlevel"){
+			if(JFWL.wonGame){
+				JFWL.paused = false;
+				JFWL.dirtyCanvas = true;
+				JFWL.level++;
+				JFWL.startGame();
+			}
 		}else if(option.operation == "restart"){
-			JFWL.dirtyCanvas = true;
 			JFWL.paused = false;
+			JFWL.dirtyCanvas = true;
 			JFWL.startGame();
 		}else if(option.operation == "menu"){
 			JFWL.paused = false;
@@ -507,12 +544,24 @@ JFWL.drawBackground = function(){
 	
 	ctx.clearRect(0,0,JFWL.canvas.width,JFWL.canvas.height);
 
-	var grd = ctx.createLinearGradient(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight()/2);
-	grd.addColorStop(0, 'rgb(149,215,236)');
-	grd.addColorStop(1, 'rgb(29,141,178)');
-	ctx.fillStyle = grd;
+	var bgLevel = JFWL.level;
+	//if(JFWL.wonGame){bgLevel--;}
 
-	ctx.fillRect(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight());	
+	if(bgLevel == 4){
+		var grd = ctx.createLinearGradient(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight()/2);
+		grd.addColorStop(0, 'rgb(149,215,236)');
+		grd.addColorStop(1, 'rgb(29,141,178)');
+		ctx.fillStyle = grd;
+
+		ctx.fillRect(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight());	
+	}else{
+		var grd = ctx.createLinearGradient(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),3*JFWL.getRenderBoxHeight()/2);
+		grd.addColorStop(0, 'hsl(180,50%,70%)');
+		grd.addColorStop(1, 'hsl(320,50%,70%)');
+		ctx.fillStyle = grd;
+
+		ctx.fillRect(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight());		
+	}
 
 	//Box border
 	ctx.beginPath();
@@ -544,10 +593,16 @@ JFWL.pauseScreen = function(){
 	var roughHeight = 1.4*ctx.measureText("m").width;
 
 	var i;
-	for(i = 0; i < JFWL.pauseOptions.length; i++){
-		var length = ctx.measureText(JFWL.pauseOptions[i].text).width;
-		JFWL.pauseOptions[i].width = length;
-		JFWL.pauseOptions[i].height = roughHeight;
+	var options;
+	if(JFWL.wonGame == true){
+		options = JFWL.winOptions;
+	}else{
+		options = JFWL.pauseOptions;
+	}
+	for(i = 0; i < options.length; i++){
+		var length = ctx.measureText(options[i].text).width;
+		options[i].width = length;
+		options[i].height = roughHeight;
 		if(length > maxWidth){maxWidth = length;}
 	}
 
@@ -583,8 +638,8 @@ JFWL.pauseScreen = function(){
 
 	ctx.fillStyle = 'fff';
 	var yStart = y1;
-	for(i = 0; i < JFWL.pauseOptions.length; i++){
-		var option = JFWL.pauseOptions[i];
+	for(i = 0; i < options.length; i++){
+		var option = options[i];
 		
 		if(JFWL.pauseOptionOverIndex == i){
 			ctx.shadowColor = 'rgba(255,255,255,0.7)';
@@ -674,4 +729,20 @@ JFWL.drawMenuScreen = function(){
 	}
 
 	ctx.restore();
+};
+
+
+JFWL.winGame = function(){
+
+	JFWL.wonGame = true;
+	JFWL.paused = true;
+	JFWL.dirtyCanvas = true;
+
+
+	JFWL.hoverNode  = -1;
+	JFWL.dragNode   = -1;
+
+	JFWL.dragNodeMoved = false;
+	JFWL.dragNode = -1
+
 };
