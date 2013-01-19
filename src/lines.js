@@ -89,15 +89,52 @@ function drawNode(node,color){
 function drawNodes(color){
 	var graph = JFWL.graph;
 	var n = graph.nodes.length;
-	var i;
+	var i, node, j, line;
+	var hoverNeighbor, dragNeighbor;
+	var hoverNode = JFWL.hoverNode;
+	var dragNode = JFWL.dragNode;
+
 	JFWL.ctx.save();
 	for(i = 0; i < n; i++){
-		if(i == JFWL.hoverNode){
-			drawNode(graph.nodes[i],[0,0,126]);
-		}else if(i == JFWL.dragNode){
-			drawNode(graph.nodes[i],[0,0,255]);
+		node = graph.nodes[i];
+		if(i == hoverNode){
+			drawNode(node,[0,0,126]);
+		}else if(i == dragNode){
+			drawNode(node,[0,0,255]);
 		}else{
-			drawNode(graph.nodes[i],color);
+
+			//Yes, this is very inefficient....
+			//TODO: optimize by storing neighbor indicies in nodes
+			hoverNeighbor = false;
+			dragNeighbor = false;
+			for(j = 0; j < graph.lines.length; j++){
+				line = graph.lines[j];
+				if(line[0] == i){
+					if(line[1] == hoverNode){
+						hoverNeighbor = true;
+						break;
+					}else if(line[1] == dragNode){
+						dragNeighbor = true;
+						break;
+					}
+				}else if(line[1] == i){
+					if(line[0] == hoverNode){
+						hoverNeighbor = true;
+						break;
+					}else if(line[0] == dragNode){
+						dragNeighbor = true;
+						break;
+					}
+				}
+			}
+
+			if(hoverNeighbor){
+				drawNode(node,[0,80,0]);
+			}else if(dragNeighbor){
+				drawNode(node,[0,120,0]);
+			}else{
+				drawNode(node,color);
+			}
 		}
 	}
 	JFWL.ctx.restore();
