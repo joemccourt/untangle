@@ -89,15 +89,52 @@ function drawNode(node,color){
 function drawNodes(color){
 	var graph = JFWL.graph;
 	var n = graph.nodes.length;
-	var i;
+	var i, node, j, line;
+	var hoverNeighbor, dragNeighbor;
+	var hoverNode = JFWL.hoverNode;
+	var dragNode = JFWL.dragNode;
+
 	JFWL.ctx.save();
 	for(i = 0; i < n; i++){
-		if(i == JFWL.hoverNode){
-			drawNode(graph.nodes[i],[0,0,126]);
-		}else if(i == JFWL.dragNode){
-			drawNode(graph.nodes[i],[0,0,255]);
+		node = graph.nodes[i];
+		if(i == hoverNode){
+			drawNode(node,[0,0,126]);
+		}else if(i == dragNode){
+			drawNode(node,[0,0,255]);
 		}else{
-			drawNode(graph.nodes[i],color);
+
+			//Yes, this is very inefficient....
+			//TODO: optimize by storing neighbor indicies in nodes
+			hoverNeighbor = false;
+			dragNeighbor = false;
+			for(j = 0; j < graph.lines.length; j++){
+				line = graph.lines[j];
+				if(line[0] == i){
+					if(line[1] == hoverNode){
+						hoverNeighbor = true;
+						break;
+					}else if(line[1] == dragNode){
+						dragNeighbor = true;
+						break;
+					}
+				}else if(line[1] == i){
+					if(line[0] == hoverNode){
+						hoverNeighbor = true;
+						break;
+					}else if(line[0] == dragNode){
+						dragNeighbor = true;
+						break;
+					}
+				}
+			}
+
+			if(hoverNeighbor){
+				drawNode(node,[0,80,0]);
+			}else if(dragNeighbor){
+				drawNode(node,[0,120,0]);
+			}else{
+				drawNode(node,color);
+			}
 		}
 	}
 	JFWL.ctx.restore();
@@ -200,15 +237,32 @@ function lineIntersectsLine(line1,line2){
 	
 	var denom = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);
 
+	//TODO: test correctly for vertical lines
+
 	if(denom == 0){
 
 		//Lines are parallel
 		//TODO: test parallel lines intersection
-		return false;
+		return true;
 	}
 
-	var px = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-y3*x4))/denom;
-	var py = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-y3*x4))/denom;
+	var px,py;
+	if(x1 == x2){
+		px = x1;
+	}else if(x3 == x4){
+		px = x3;
+	}else{
+		px = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-y3*x4))/denom;
+	}
+	
+	if(y1 == y2){
+		py = y1;
+	}else if(y3 == y4){
+		py = y3;
+	}else{
+		py = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-y3*x4))/denom;
+	}
+
 
 	if(px < x2 && px < x1){return false;}
 	if(px > x2 && px > x1){return false;}
