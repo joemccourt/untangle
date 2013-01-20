@@ -104,7 +104,7 @@ function drawNodes(color){
 		}else{
 
 			//Yes, this is very inefficient....
-			//TODO: optimize by storing neighbor indicies in nodes
+			//TODO: optimize by marking beforehand which nodes are adjacent
 			hoverNeighbor = false;
 			dragNeighbor = false;
 			for(j = 0; j < graph.lines.length; j++){

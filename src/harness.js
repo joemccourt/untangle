@@ -24,6 +24,8 @@ JFWL.checkWon = false;
 JFWL.maxLevel = 4;
 JFWL.level = JFWL.maxLevel;
 
+JFWL.font = 'Verdana';
+
 // State Colors
 JFWL.lineHoverColor      = [0,0,0];
 JFWL.lineDragColor       = [0,0,0];
@@ -115,6 +117,63 @@ JFWL.startGame = function(){
 	//TODO: check if game already one after graph generation
 };
 
+
+JFWL.loadGameState = function() {
+	if (!supports_html5_storage()) { return false; }
+
+
+	JFWL.gameInProgress = (localStorage["JFWL.gameInProgress"] == "true");
+
+	if(JFWL.gameInProgress){
+		JFWL.maxLevel = parseInt(localStorage["JFWL.maxLevel"]);
+		
+		JFWL.paused       = (localStorage["JFWL.paused"] == "true");
+		JFWL.onMenuScreen = (localStorage["JFWL.onMenuScreen"] == "true");
+		JFWL.wonGame      = (localStorage["JFWL.wonGame"] == "true");
+
+		JFWL.level = parseInt(localStorage["JFWL.level"]);
+		JFWL.graph = JSON.parse(localStorage["JFWL.graph"]);
+	}
+}
+
+JFWL.saveGameState = function() {
+    if (!supports_html5_storage()) { return false; }
+    localStorage["JFWL.gameInProgress"] = true;
+    
+    localStorage["JFWL.maxLevel"] = JFWL.maxLevel;
+    localStorage["JFWL.paused"] = JFWL.paused;
+    localStorage["JFWL.onMenuScreen"] = JFWL.onMenuScreen;
+    localStorage["JFWL.wonGame"] = JFWL.wonGame;
+    localStorage["JFWL.level"] = JFWL.level;
+
+    localStorage["JFWL.graph"] = JSON.stringify(JFWL.graph);
+}
+
+JFWL.startSession = function(){
+
+	JFWL.canvas = document.getElementById("demoCanvas");
+	JFWL.ctx = JFWL.canvas.getContext("2d");
+	
+	var w = JFWL.canvas.width;
+	var h = JFWL.canvas.height;
+
+	JFWL.renderBox = [30,30,w-30,h-30];
+
+	JFWL.loadGameState();
+
+	if(!JFWL.gameInProgress){
+		JFWL.startGame();
+	}else{
+		JFWL.hoverNode  = -1;
+		JFWL.dragNode   = -1;
+
+	JFWL.pauseOptionOverIndex = -1;
+		JFWL.dirtyCanvas = true;
+	}
+
+	JFWL.initEvents();	
+}
+
 JFWL.internalToRenderSpace = function(x,y){
 	var xRender = (x + 1) * JFWL.getRenderBoxWidth() / 2  + JFWL.renderBox[0];
 	var yRender = (y + 1) * JFWL.getRenderBoxHeight() / 2 + JFWL.renderBox[1];
@@ -148,12 +207,7 @@ JFWL.mouseUp = function(){return JFWL.mouse === "up";};
 
 window.onload = function(){
 
-	JFWL.canvas = document.getElementById("demoCanvas");
-	JFWL.ctx = JFWL.canvas.getContext("2d");
-
-	JFWL.startGame();
-
-	JFWL.initEvents();
+	JFWL.startSession();
 
 	//Main loop
 	//TODO: use request animation frame
@@ -165,12 +219,16 @@ window.onload = function(){
 
 		if(JFWL.dirtyCanvas){
 
+			JFWL.dirtyCanvas = false;
+
+			JFWL.saveGameState();
+			JFWL.drawBackground();		
+
 			if(JFWL.onMenuScreen){
 				JFWL.drawMenuScreen();
 			}else if(JFWL.paused){
 				JFWL.reDraw();
 				JFWL.pauseScreen();
-				JFWL.dirtyCanvas = false;
 			}else{
 				JFWL.reDraw();
 
@@ -178,7 +236,6 @@ window.onload = function(){
 					JFWL.checkWon = false;
 					if(JFWL.numIntersections){
 						console.log("Playing...");
-						JFWL.dirtyCanvas = false;
 					}else{
 						console.log("You Win!");
 						JFWL.winGame();
@@ -196,9 +253,6 @@ JFWL.reDraw = function(){
 	var w = JFWL.canvas.width;
 	var h = JFWL.canvas.height;
 
-	JFWL.renderBox = [30,30,w-30,h-30];
-
-	JFWL.drawBackground();		
 	// var newCanvasData = context.createImageData(w, h); // blank
 	// var dst = newCanvasData.data;
 	
@@ -348,7 +402,6 @@ JFWL.initEvents = function(){
 		//114 = 'r'
 		//115 = 's'
 
-		//Restart
 		if(e.charCode == 112){
 			if(!JFWL.paused){
 				$('body').css('cursor', 'default');
@@ -593,7 +646,7 @@ JFWL.pauseScreen = function(){
 	ctx.fillRect(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight());
 
 	//Menu Box
-	ctx.font = '36px Verdana';
+	ctx.font = '36px ' + JFWL.font;
 
 	var minWidth = 40;
 	var maxWidth = 0;
@@ -654,7 +707,6 @@ JFWL.pauseScreen = function(){
 	ctx.fill();
 	ctx.stroke();
 
-
 	//Draw options
 	ctx.shadowColor = undefined;
 	ctx.shadowOffsetX = 0;
@@ -707,7 +759,7 @@ JFWL.drawMenuScreen = function(){
 	// ctx.fillRect(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight());
 
 	//Menu Box
-	ctx.font = '36px Verdana';
+	ctx.font = '36px ' + JFWL.font;
 
 	var width = JFWL.getRenderBoxWidth();
 	var height = JFWL.getRenderBoxHeight();
@@ -795,3 +847,31 @@ JFWL.menuOptions.push({
 	JFWL.dragNode = -1
 
 };
+
+// Fonts
+WebFontConfig = {
+	google: { families: [ 'Libre+Baskerville::latin' ] },
+	active: function() {
+		JFWL.font = "Libre Baskerville";
+		JFWL.dirtyCanvas = true;
+	},
+  };
+  (function() {
+    var wf = document.createElement('script');
+    wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
+      '://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js';
+    wf.type = 'text/javascript';
+    wf.async = 'true';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(wf, s);
+  })();
+
+function supports_html5_storage() {
+	try {
+		return 'localStorage' in window && window['localStorage'] !== null;
+	} catch (e) {
+		return false;
+	}
+}
+
+//console.log(supports_html5_storage());
