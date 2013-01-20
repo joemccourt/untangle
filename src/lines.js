@@ -26,20 +26,6 @@ function drawLine(line,color){
     ctx.stroke();
 }
 
-JFWL.drawButtons = function(){
-	var ctx = JFWL.ctx;
-
-	// var i;
-	// for(i = 0; i < JFWL.inGameButtons.length; i++){
-
-	// 	//TODO: draw text
-	// 	var canvasCoords = JFWL.internalToRenderSpace(JFWL.inGameButtons[i].x,JFWL.inGameButtons[i].y);
-	// 	ctx.fillStyle = "rgba(255,0,255,1)";
-	// 	ctx.fillRect(canvasCoords[0],canvasCoords[1],50,10);	
-	// }
-
-};
-
 JFWL.moveNode = function(node,x,y){
 
 	//Clamp
@@ -104,7 +90,7 @@ function drawNodes(color){
 		}else{
 
 			//Yes, this is very inefficient....
-			//TODO: optimize by storing neighbor indicies in nodes
+			//TODO: optimize by marking beforehand which nodes are adjacent
 			hoverNeighbor = false;
 			dragNeighbor = false;
 			for(j = 0; j < graph.lines.length; j++){
