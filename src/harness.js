@@ -54,10 +54,6 @@ JFWL.menuOptions = [
 							operation:"none"
 						},
 						{
-							text:"Start",
-							operation:"start"
-						},
-						{
 							text:"Credits",
 							operation:"credits"
 						},
@@ -163,6 +159,7 @@ JFWL.startGame = function(){
 	JFWL.graph = genGraphPlanarity(JFWL.level);
 	markIntersections([]);
 
+	//Check if game already solveds
 	var i = 0;
 	while(JFWL.numIntersections == 0){
 		JFWL.graph = genGraphPlanarity(JFWL.level);
@@ -173,7 +170,6 @@ JFWL.startGame = function(){
 	
 
 	JFWL.updateLevelDisplay();
-	//TODO: check if game already one after graph generation
 
 	JFWL.saveGameState();
 };
@@ -305,7 +301,7 @@ window.onload = function(){
 			}else{
 				JFWL.reDraw();
 
-				if(JFWL.checkWon){
+				if(JFWL.checkWon && !JFWL.wonGame){
 					JFWL.checkWon = false;
 					if(JFWL.numIntersections){
 						console.log("Playing...");
@@ -420,7 +416,7 @@ JFWL.drawButtons = function(){
 	for(i = 0; i < JFWL.inGameButtons.length; i++){
 		var option = JFWL.inGameButtons[i];
 		option.left = xLast;
-		option.top  = y1;	
+		option.top  = y1 + option.height * 0.3;	
 		xLast += option.width + spacing;
 	}
 
@@ -437,16 +433,16 @@ JFWL.drawButtons = function(){
 			ctx.shadowOffsetX = 0.01*JFWL.getRenderBoxWidth();
 			ctx.shadowOffsetY = 0.01*JFWL.getRenderBoxHeight();
 		}else{
-			ctx.shadowColor = undefined;
-			ctx.shadowBlur = 0;
-			ctx.shadowOffsetX = 0;
-			ctx.shadowOffsetY = 0;
+			ctx.shadowColor = 'rgba(0,0,0,0.3)';
+			ctx.shadowBlur = 1;
+			ctx.shadowOffsetX = 0.003*JFWL.getRenderBoxWidth();
+			ctx.shadowOffsetY = 0.003*JFWL.getRenderBoxHeight();
 		}
 
 
 		ctx.font = "12pt " + JFWL.font;
 		ctx.fillStyle = 'fff';
-		ctx.fillText(option.text,option.left,y1);
+		ctx.fillText(option.text,option.left,option.top);
 	}
 
 	ctx.restore();
@@ -475,7 +471,7 @@ JFWL.initEvents = function(){
 			var selectRadius = 0.03;
 
 			var dist = Math.sqrt(Math.pow(JFWL.dragNodeStartX - x,2) + Math.pow(JFWL.dragNodeStartY - y,2));
-			console.log(dist,x,y,JFWL.graph.nodes[JFWL.dragNode],JFWL.clickOffset)
+			
 			if(dist > selectRadius){
 				JFWL.dragNode = -1;
 				JFWL.checkWon = true;
@@ -621,6 +617,11 @@ function hoverAt(x,y){
 		}
 	}
 
+	if(JFWL.hoverNode != minIndex){
+		JFWL.dirtyCanvas = true;
+		JFWL.hoverNode = minIndex;
+	}
+
 	var origOverIndex = JFWL.inGameButtonOverIndex;
 	JFWL.inGameButtonOverIndex = -1;
 	for(i = 0; i < JFWL.inGameButtons.length; i++){
@@ -642,6 +643,7 @@ function hoverAt(x,y){
 
 			if(x < x2 && y < y2){
 				JFWL.inGameButtonOverIndex = i;
+				JFWL.hoverNode = -1;
 				break;
 			}
 		}
@@ -649,11 +651,6 @@ function hoverAt(x,y){
 
 	if(origOverIndex != JFWL.inGameButtonOverIndex){
 		JFWL.dirtyCanvas = true;
-	}
-
-	if(JFWL.hoverNode != minIndex){
-		JFWL.dirtyCanvas = true;
-		JFWL.hoverNode = minIndex;
 	}
 
 	/*  //Below code is too complex
@@ -731,7 +728,7 @@ JFWL.pausedMouseDown = function(x,y){
 
 	if(JFWL.pauseOptionOverIndex != -1){
 		var option = options[JFWL.pauseOptionOverIndex];
-		console.log("Do: ", option.operation);
+		//console.log("Do: ", option.operation);
 		$('body').css('cursor', 'default');
 
 		if(option.operation == "resume"){
@@ -798,7 +795,7 @@ JFWL.menuMouseDown = function(x,y){
 
 	if(JFWL.menuOptionOverIndex != -1){
 		var option = JFWL.menuOptions[JFWL.menuOptionOverIndex];
-		console.log("Do: ", option.operation);
+		//console.log("Do: ", option.operation);
 
 		if(option.operation == "resume"){
 			JFWL.paused = false;
@@ -827,24 +824,127 @@ JFWL.drawBackground = function(){
 	
 	ctx.clearRect(0,0,JFWL.canvas.width,JFWL.canvas.height);
 
-	var bgLevel = JFWL.level;
+	var level = JFWL.level;
 	//if(JFWL.wonGame){bgLevel--;}
 
-	if(bgLevel == 4){
-		var grd = ctx.createLinearGradient(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight()/2);
+	var grd;
+	if(level == 4){
+		grd = ctx.createLinearGradient(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight()/2);
 		grd.addColorStop(0, 'rgb(149,215,236)');
 		grd.addColorStop(1, 'rgb(29,141,178)');
-		ctx.fillStyle = grd;
+	}else if(level == 5){
+		var x = (JFWL.renderBox[0] + JFWL.renderBox[2])/2;
+		var y = (JFWL.renderBox[1] + JFWL.renderBox[3])/2;
+		
+		var angle = 45 * Math.PI / 180;
+		var x1 = x - JFWL.getRenderBoxWidth()  * 0.5 * Math.sqrt(2) * Math.cos(angle);
+		var y1 = y - JFWL.getRenderBoxHeight() * 0.5 * Math.sqrt(2) * Math.sin(angle);
+		var x2 = x + JFWL.getRenderBoxWidth()  * 0.5 * Math.sqrt(2) * Math.cos(angle);
+		var y2 = y + JFWL.getRenderBoxHeight() * 0.5 * Math.sqrt(2) * Math.sin(angle);
 
-		ctx.fillRect(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight());	
+		grd = ctx.createLinearGradient(x1,y1,x2,y2);
+		
+		grd.addColorStop(0, 'hsl(0,100%,80%)');
+		grd.addColorStop(1, 'hsl(120,100%,80%)');
+	}else if(level == 6){
+		var x1 = JFWL.renderBox[0] + 0.333 * JFWL.getRenderBoxWidth();
+		var y1 = JFWL.renderBox[1] + 0.333 * JFWL.getRenderBoxHeight();
+
+		grd = ctx.createRadialGradient(x1,y1,0,x1,y1,Math.sqrt(2) * JFWL.getRenderBoxWidth());
+		
+		grd.addColorStop(0, 'hsl(90,40%,75%)');
+		grd.addColorStop(1, 'hsl(220,40%,75%)');
+	}else if(level == 7){
+		var x = (JFWL.renderBox[0] + JFWL.renderBox[2])/2;
+		var y = (JFWL.renderBox[1] + JFWL.renderBox[3])/2;
+		
+		var angle = 220 * Math.PI / 180;
+		var x1 = x - JFWL.getRenderBoxWidth()  * 0.5 * Math.sqrt(2) * Math.cos(angle);
+		var y1 = y - JFWL.getRenderBoxHeight() * 0.5 * Math.sqrt(2) * Math.sin(angle);
+		var x2 = x + JFWL.getRenderBoxWidth()  * 0.5 * Math.sqrt(2) * Math.cos(angle);
+		var y2 = y + JFWL.getRenderBoxHeight() * 0.5 * Math.sqrt(2) * Math.sin(angle);
+
+		grd = ctx.createLinearGradient(x1,y1,x2,y2);
+		
+		grd.addColorStop(0, 'hsl(70,100%,80%)');
+		grd.addColorStop(1, 'hsl(210,100%,80%)');
+	}else if(level == 8){
+		var x1 = JFWL.renderBox[0] + 0.333 * JFWL.getRenderBoxWidth();
+		var y1 = JFWL.renderBox[1] + 1 * JFWL.getRenderBoxHeight();
+
+		grd = ctx.createRadialGradient(x1,y1,0,x1,y1,Math.sqrt(2) * JFWL.getRenderBoxWidth());
+		
+		grd.addColorStop(0, 'hsl(240,70%,80%)');
+		grd.addColorStop(1, 'hsl(270,70%,80%)');
+	}else if(level == 9){
+		var x = (JFWL.renderBox[0] + JFWL.renderBox[2])/2;
+		var y = (JFWL.renderBox[1] + JFWL.renderBox[3])/2;
+		
+		var angle = 135 * Math.PI / 180;
+		var x1 = x - JFWL.getRenderBoxWidth()  * 0.5 * Math.sqrt(2) * Math.cos(angle);
+		var y1 = y - JFWL.getRenderBoxHeight() * 0.5 * Math.sqrt(2) * Math.sin(angle);
+		var x2 = x + JFWL.getRenderBoxWidth()  * 0.5 * Math.sqrt(2) * Math.cos(angle);
+		var y2 = y + JFWL.getRenderBoxHeight() * 0.5 * Math.sqrt(2) * Math.sin(angle);
+
+		grd = ctx.createLinearGradient(x1,y1,x2,y2);
+		
+		grd.addColorStop(0, 'hsl(135,100%,80%)');
+		grd.addColorStop(1, 'hsl(310,100%,80%)');
+	}else if(level == 10){
+		
+		var x1 = JFWL.renderBox[0] + 0.6666 * JFWL.getRenderBoxWidth();
+		var y1 = JFWL.renderBox[1] + 0;
+
+		grd = ctx.createRadialGradient(x1,y1,0,x1,y1,Math.sqrt(2) * JFWL.getRenderBoxWidth());
+		
+		grd.addColorStop(0, 'hsl(0,40%,60%)');
+		grd.addColorStop(0.5, 'hsl(120,40%,60%)');
+		grd.addColorStop(1, 'hsl(260,70%,80%)');
+	}else if(level == 11){
+		var x = (JFWL.renderBox[0] + JFWL.renderBox[2])/2;
+		var y = (JFWL.renderBox[1] + JFWL.renderBox[3])/2;
+		
+		var angle = 30 * Math.PI / 180;
+		var x1 = x - JFWL.getRenderBoxWidth()  * 0.5 * Math.sqrt(2) * Math.cos(angle);
+		var y1 = y - JFWL.getRenderBoxHeight() * 0.5 * Math.sqrt(2) * Math.sin(angle);
+		var x2 = x + JFWL.getRenderBoxWidth()  * 0.5 * Math.sqrt(2) * Math.cos(angle);
+		var y2 = y + JFWL.getRenderBoxHeight() * 0.5 * Math.sqrt(2) * Math.sin(angle);
+
+		grd = ctx.createLinearGradient(x1,y1,x2,y2);
+		
+		grd.addColorStop(0, 'hsl(0,100%,75%)');
+		grd.addColorStop(1, 'hsl(240,100%,75%)');
+	}else if(level == 12){
+
+		var x1 = JFWL.renderBox[0] + 1 * JFWL.getRenderBoxWidth();
+		var y1 = JFWL.renderBox[1] + 1 * JFWL.getRenderBoxHeight();
+
+		grd = ctx.createRadialGradient(x1,y1,0,x1,y1,Math.sqrt(2) * JFWL.getRenderBoxWidth());
+		
+		grd.addColorStop(0, 'hsl(240,70%,60%)');
+		grd.addColorStop(1, 'hsl(240,70%,80%)');
+	}else if(level == 13){
+		var x = (JFWL.renderBox[0] + JFWL.renderBox[2])/2;
+		var y = (JFWL.renderBox[1] + JFWL.renderBox[3])/2;
+		
+		var angle = 75 * Math.PI / 180;
+		var x1 = x - JFWL.getRenderBoxWidth()  * 0.5 * Math.sqrt(2) * Math.cos(angle);
+		var y1 = y - JFWL.getRenderBoxHeight() * 0.5 * Math.sqrt(2) * Math.sin(angle);
+		var x2 = x + JFWL.getRenderBoxWidth()  * 0.5 * Math.sqrt(2) * Math.cos(angle);
+		var y2 = y + JFWL.getRenderBoxHeight() * 0.5 * Math.sqrt(2) * Math.sin(angle);
+
+		grd = ctx.createLinearGradient(x1,y1,x2,y2);
+		
+		grd.addColorStop(0, 'hsl(60,50%,80%)');
+		grd.addColorStop(1, 'hsl(180,50%,80%)');
 	}else{
-		var grd = ctx.createLinearGradient(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),3*JFWL.getRenderBoxHeight()/2);
+
+		grd = ctx.createLinearGradient(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),3*JFWL.getRenderBoxHeight()/2);
 		grd.addColorStop(0, 'hsl(180,50%,70%)');
 		grd.addColorStop(1, 'hsl(320,50%,70%)');
-		ctx.fillStyle = grd;
-
-		ctx.fillRect(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight());		
 	}
+		ctx.fillStyle = grd;
+		ctx.fillRect(JFWL.renderBox[0],JFWL.renderBox[1],JFWL.getRenderBoxWidth(),JFWL.getRenderBoxHeight());		
 
 	//Box border
 	ctx.beginPath();
