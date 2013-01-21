@@ -21,6 +21,7 @@ JFWL.pauseOptionOverIndex = -1;
 JFWL.menuOptionOverIndex = -1;
 JFWL.inGameButtonOverIndex = -1;
 JFWL.checkWon = false;
+JFWL.toSaveGame = true;
 
 JFWL.maxLevel = 4;
 JFWL.level = JFWL.maxLevel;
@@ -36,7 +37,7 @@ JFWL.lineDefaultColor    = [0,0,0];
 // In Game Buttons
 JFWL.inGameButtons = [
 						{
-							text:"Pause (p)",
+							text:"Pause",
 							operation:"pause"
 						},
 						{
@@ -126,7 +127,7 @@ JFWL.pauseOptions = [
 							operation:"restart"
 						},
 						{
-							text:"Main Menu (exit)",
+							text:"Main Menu (quit game)",
 							operation:"menu"
 						}
 					];
@@ -160,15 +161,26 @@ JFWL.startGame = function(){
 	JFWL.wonGame = false;
 
 	JFWL.graph = genGraphPlanarity(JFWL.level);
+	markIntersections([]);
+
+	var i = 0;
+	while(JFWL.numIntersections == 0){
+		JFWL.graph = genGraphPlanarity(JFWL.level);
+		markIntersections([]);
+		i++;
+		console.log(i);
+	}
+	
 
 	JFWL.updateLevelDisplay();
 	//TODO: check if game already one after graph generation
+
+	JFWL.saveGameState();
 };
 
 JFWL.updateLevelDisplay = function(){
 	var i;
 	for(i = 0; i < JFWL.inGameButtons.length; i++){
-		console.log("hklejrle")
 		var option = JFWL.inGameButtons[i];
 		if(option.operation == "displaylevel"){
 			option.text = "Level: " + (JFWL.level-3) + " ";
@@ -221,7 +233,8 @@ JFWL.startSession = function(){
 	JFWL.loadGameState();
 
 	if(!JFWL.gameInProgress){
-		JFWL.startGame();
+		JFWL.onMenuScreen = true;
+		//JFWL.startGame();
 	}else{
 		JFWL.hoverNode  = -1;
 		JFWL.dragNode   = -1;
@@ -242,8 +255,8 @@ JFWL.internalToRenderSpace = function(x,y){
 };
 
 JFWL.renderToInternalSpace = function(x,y){
-	var xInternal = 2 * (x - JFWL.renderBox[0]) /JFWL.getRenderBoxWidth()  - 1;
-	var yInternal = 2 * (y - JFWL.renderBox[1]) /JFWL.getRenderBoxHeight() - 1;
+	var xInternal = 2 * (x - JFWL.renderBox[0]) / JFWL.getRenderBoxWidth()  - 1;
+	var yInternal = 2 * (y - JFWL.renderBox[1]) / JFWL.getRenderBoxHeight() - 1;
 	return [xInternal,yInternal];
 };
 
@@ -282,7 +295,6 @@ window.onload = function(){
 
 			JFWL.dirtyCanvas = false;
 
-			JFWL.saveGameState();
 			JFWL.drawBackground();		
 
 			if(JFWL.onMenuScreen){
@@ -302,6 +314,12 @@ window.onload = function(){
 						JFWL.winGame();
 					}
 				}
+			}
+
+			//Save game
+			if(JFWL.toSaveGame){
+				JFWL.saveGameState();
+				JFWL.toSaveGame = false;
 			}
 		}
 	},0);
@@ -402,6 +420,7 @@ JFWL.drawButtons = function(){
 	for(i = 0; i < JFWL.inGameButtons.length; i++){
 		var option = JFWL.inGameButtons[i];
 		option.left = xLast;
+		option.top  = y1;	
 		xLast += option.width + spacing;
 	}
 
@@ -410,6 +429,20 @@ JFWL.drawButtons = function(){
 
 		var textLength = ctx.measureText(option.text).width;
 		var textHeight = 1.1 * ctx.measureText("m").width;
+
+		if(JFWL.inGameButtonOverIndex == i){
+			ctx.shadowColor = 'rgba(0,0,0,0.7)';
+			ctx.shadowBlur = 4;
+
+			ctx.shadowOffsetX = 0.01*JFWL.getRenderBoxWidth();
+			ctx.shadowOffsetY = 0.01*JFWL.getRenderBoxHeight();
+		}else{
+			ctx.shadowColor = undefined;
+			ctx.shadowBlur = 0;
+			ctx.shadowOffsetX = 0;
+			ctx.shadowOffsetY = 0;
+		}
+
 
 		ctx.font = "12pt " + JFWL.font;
 		ctx.fillStyle = 'fff';
@@ -422,13 +455,33 @@ JFWL.drawButtons = function(){
 //Events
 JFWL.initEvents = function(){
 	$(document).mouseup(function (e) {
+		JFWL.mouse = "up";
+
 		if(JFWL.paused){return;}
 
-		JFWL.mouse = "up";
+		var offset = $("#demoCanvas").offset();
+		var x = e.pageX - offset.left;
+		var y = e.pageY - offset.top;
+
+		//Convert to internal coord system
+		var internalPoint = JFWL.renderToInternalSpace(x,y);
+		x = internalPoint[0];
+		y = internalPoint[1];
+
 		if(JFWL.dragNodeMoved){
-			JFWL.dragNode = -1;
-			JFWL.checkWon = true;
+
+			var graph = JFWL.graph;
+			
+			var selectRadius = 0.03;
+
+			var dist = Math.sqrt(Math.pow(JFWL.dragNodeStartX - x,2) + Math.pow(JFWL.dragNodeStartY - y,2));
+			console.log(dist,x,y,JFWL.graph.nodes[JFWL.dragNode],JFWL.clickOffset)
+			if(dist > selectRadius){
+				JFWL.dragNode = -1;
+				JFWL.checkWon = true;
+			}
 		}
+		JFWL.toSaveGame = true;
 	});
 
 	$(document).mousedown(function (e) {
@@ -441,8 +494,19 @@ JFWL.initEvents = function(){
 		if(JFWL.paused){JFWL.pausedMouseDown(x,y);return;}
 		if(JFWL.onMenuScreen){JFWL.menuMouseDown(x,y);return;}
 
-		if(JFWL.dragNode < 0 && JFWL.hoverNode >= 0){
+
+		if(JFWL.inGameButtonOverIndex >= 0){
+			var option = JFWL.inGameButtons[JFWL.inGameButtonOverIndex];
+
+			if(option.operation == "pause"){
+				$('body').css('cursor', 'default');
+				JFWL.dirtyCanvas = true;
+				JFWL.paused = true;
+			}
+
+		}else if(JFWL.dragNode < 0 && JFWL.hoverNode >= 0){
 			JFWL.dragNode = JFWL.hoverNode;
+
 			JFWL.hoverNode = -1;
 			JFWL.dirtyCanvas = true;
 
@@ -453,12 +517,16 @@ JFWL.initEvents = function(){
 
 			JFWL.clickOffset.x = x - JFWL.graph.nodes[JFWL.dragNode].x;
 			JFWL.clickOffset.y = y - JFWL.graph.nodes[JFWL.dragNode].y;
+
+			JFWL.dragNodeStartX = x;
+			JFWL.dragNodeStartY = y;
 		}else{
 			JFWL.dragNode = -1;
 			JFWL.checkWon = true;
 		}
 
 		JFWL.dragNodeMoved = false;
+		JFWL.toSaveGame = true;
 	});
 
 	$(document).mousemove(function (e) {
@@ -499,7 +567,7 @@ JFWL.initEvents = function(){
 		//Cursor states
 		if(JFWL.dragNode >= 0){
 			$('body').css('cursor', 'move');
-		}else if(JFWL.hoverNode >= 0){
+		}else if(JFWL.hoverNode >= 0 || JFWL.inGameButtonOverIndex >= 0){
 			$('body').css('cursor', 'hand');
 		}else{
 			$('body').css('cursor', 'default');
@@ -529,9 +597,9 @@ JFWL.initEvents = function(){
 			JFWL.startGame();
 			JFWL.paused = false;
 		}else if(e.charCode == 115){
-			JFWL.dirtyCanvas = true;
-			JFWL.shuffleGraph();
-			JFWL.paused = false;
+			// JFWL.dirtyCanvas = true;
+			// JFWL.shuffleGraph();
+			// JFWL.paused = false;
 		}
 	});
 
@@ -551,6 +619,36 @@ function hoverAt(x,y){
 			minIndex = i;
 			minDist  = dist;
 		}
+	}
+
+	var origOverIndex = JFWL.inGameButtonOverIndex;
+	JFWL.inGameButtonOverIndex = -1;
+	for(i = 0; i < JFWL.inGameButtons.length; i++){
+		var option = JFWL.inGameButtons[i];
+		var internalPoint;
+		var x1,y1,x2,y2;
+
+		if(option.operation != "pause"){continue;} //only hover for pause for now
+
+		//Convert to intenal coord system
+		internalPoint = JFWL.renderToInternalSpace(option.left,option.top);
+		x1 = internalPoint[0];
+		y1 = internalPoint[1];
+
+		if(x > x1 && y > y1){
+			internalPoint = JFWL.renderToInternalSpace(option.left+option.width,option.top+option.height);
+			x2 = internalPoint[0];
+			y2 = internalPoint[1];
+
+			if(x < x2 && y < y2){
+				JFWL.inGameButtonOverIndex = i;
+				break;
+			}
+		}
+	}
+
+	if(origOverIndex != JFWL.inGameButtonOverIndex){
+		JFWL.dirtyCanvas = true;
 	}
 
 	if(JFWL.hoverNode != minIndex){
