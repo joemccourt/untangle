@@ -15,6 +15,7 @@ JFWL.numIntersections = 0;
 JFWL.dirtyCanvas = true;  //Keep track of when state has changed and need to update canvas
 JFWL.paused = false;
 JFWL.menu = false;
+JFWL.gameInProgress = false;
 JFWL.wonGame = false;
 JFWL.pauseBoxHeight = 400;
 JFWL.pauseOptionOverIndex = -1;
@@ -147,134 +148,6 @@ JFWL.winOptions = [
 JFWL.lineWidth = 3;
 JFWL.nodeRadius = 15;
 
-JFWL.startGame = function(){
-
-	JFWL.hoverNode  = -1;
-	JFWL.dragNode   = -1;
-
-	JFWL.graph = {};
-	JFWL.dirtyCanvas = true;
-	JFWL.wonGame = false;
-
-	JFWL.graph = genGraphPlanarity(JFWL.level);
-	markIntersections([]);
-
-	//Check if game already solveds
-	var i = 0;
-	while(JFWL.numIntersections == 0){
-		JFWL.graph = genGraphPlanarity(JFWL.level);
-		markIntersections([]);
-		i++;
-		console.log(i);
-	}
-	
-
-	JFWL.updateLevelDisplay();
-
-	JFWL.saveGameState();
-};
-
-JFWL.updateLevelDisplay = function(){
-	var i;
-	for(i = 0; i < JFWL.inGameButtons.length; i++){
-		var option = JFWL.inGameButtons[i];
-		if(option.operation == "displaylevel"){
-			option.text = "Level: " + (JFWL.level-3) + " ";
-		}
-	}
-};
-
-
-JFWL.loadGameState = function() {
-	if (!supports_html5_storage()) { return false; }
-
-
-	JFWL.gameInProgress = (localStorage["JFWL.gameInProgress"] == "true");
-
-	if(JFWL.gameInProgress){
-		JFWL.maxLevel = parseInt(localStorage["JFWL.maxLevel"]);
-		
-		JFWL.paused       = (localStorage["JFWL.paused"] == "true");
-		JFWL.onMenuScreen = (localStorage["JFWL.onMenuScreen"] == "true");
-		JFWL.wonGame      = (localStorage["JFWL.wonGame"] == "true");
-
-		JFWL.level = parseInt(localStorage["JFWL.level"]);
-		JFWL.graph = JSON.parse(localStorage["JFWL.graph"]);
-	}
-}
-
-JFWL.saveGameState = function() {
-    if (!supports_html5_storage()) { return false; }
-    localStorage["JFWL.gameInProgress"] = true;
-    
-    localStorage["JFWL.maxLevel"] = JFWL.maxLevel;
-    localStorage["JFWL.paused"] = JFWL.paused;
-    localStorage["JFWL.onMenuScreen"] = JFWL.onMenuScreen;
-    localStorage["JFWL.wonGame"] = JFWL.wonGame;
-    localStorage["JFWL.level"] = JFWL.level;
-
-    localStorage["JFWL.graph"] = JSON.stringify(JFWL.graph);
-}
-
-JFWL.startSession = function(){
-
-	JFWL.canvas = document.getElementById("demoCanvas");
-	JFWL.ctx = JFWL.canvas.getContext("2d");
-	
-	var w = JFWL.canvas.width;
-	var h = JFWL.canvas.height;
-
-	JFWL.renderBox = [30,30,w-30,h-30];
-
-	JFWL.loadGameState();
-
-	if(!JFWL.gameInProgress){
-		JFWL.onMenuScreen = true;
-		//JFWL.startGame();
-	}else{
-		JFWL.hoverNode  = -1;
-		JFWL.dragNode   = -1;
-
-	JFWL.pauseOptionOverIndex = -1;
-		JFWL.dirtyCanvas = true;
-	}
-
-	JFWL.updateLevelDisplay();
-
-	JFWL.initEvents();	
-}
-
-JFWL.internalToRenderSpace = function(x,y){
-	var xRender = (x + 1) * JFWL.getRenderBoxWidth() / 2  + JFWL.renderBox[0];
-	var yRender = (y + 1) * JFWL.getRenderBoxHeight() / 2 + JFWL.renderBox[1];
-	return [xRender,yRender];
-};
-
-JFWL.renderToInternalSpace = function(x,y){
-	var xInternal = 2 * (x - JFWL.renderBox[0]) / JFWL.getRenderBoxWidth()  - 1;
-	var yInternal = 2 * (y - JFWL.renderBox[1]) / JFWL.getRenderBoxHeight() - 1;
-	return [xInternal,yInternal];
-};
-
-JFWL.arrayColorToString = function(color){
-	return "rgb("+Math.round(color[0])+","+Math.round(color[1])+","+Math.round(color[2])+")";
-};
-
-JFWL.blendColors = function(color1,color2,alpha,mode){
-	var newColor = [];
-
-	//Normal mode for now
-	newColor[0] = (1-alpha)*color1[0]+alpha*color2[0];
-	newColor[1] = (1-alpha)*color1[1]+alpha*color2[1];
-	newColor[2] = (1-alpha)*color1[2]+alpha*color2[2];
-	return newColor;
-};
-
-JFWL.getRenderBoxWidth  = function(){return JFWL.renderBox[2] - JFWL.renderBox[0];};
-JFWL.getRenderBoxHeight = function(){return JFWL.renderBox[3] - JFWL.renderBox[1];};
-JFWL.mouseDown = function(){return JFWL.mouse === "down";};
-JFWL.mouseUp = function(){return JFWL.mouse === "up";};
-
 window.onload = function(){
 
 	JFWL.startSession();
@@ -320,6 +193,135 @@ window.onload = function(){
 		}
 	},0);
 };
+
+
+JFWL.startGame = function(){
+
+	JFWL.hoverNode  = -1;
+	JFWL.dragNode   = -1;
+
+	JFWL.graph = {};
+	JFWL.dirtyCanvas = true;
+	JFWL.wonGame = false;
+
+	JFWL.graph = genGraphPlanarity(JFWL.level);
+	markIntersections([]);
+
+	//Check if game already solveds
+	var i = 0;
+	while(JFWL.numIntersections == 0){
+		JFWL.graph = genGraphPlanarity(JFWL.level);
+		markIntersections([]);
+		i++;
+		console.log(i);
+	}
+	
+
+	JFWL.updateLevelDisplay();
+
+	JFWL.saveGameState();
+};
+
+JFWL.updateLevelDisplay = function(){
+	var i;
+	for(i = 0; i < JFWL.inGameButtons.length; i++){
+		var option = JFWL.inGameButtons[i];
+		if(option.operation == "displaylevel"){
+			option.text = "Level: " + (JFWL.level-3) + " ";
+		}
+	}
+};
+
+
+JFWL.loadGameState = function() {
+	if (!supports_html5_storage()) { return false; }
+	JFWL.gameInProgress = (localStorage["JFWL.gameInProgress"] == "true");
+
+	if(JFWL.gameInProgress){
+		JFWL.maxLevel = parseInt(localStorage["JFWL.maxLevel"]);
+		
+		JFWL.paused       = (localStorage["JFWL.paused"] == "true");
+		JFWL.onMenuScreen = (localStorage["JFWL.onMenuScreen"] == "true");
+		JFWL.wonGame      = (localStorage["JFWL.wonGame"] == "true");
+
+		JFWL.level = parseInt(localStorage["JFWL.level"]);
+		
+		JFWL.graph = JSON.parse(localStorage["JFWL.graph"]);
+
+	}
+}
+
+JFWL.saveGameState = function() {
+    if (!supports_html5_storage()) { return false; }
+    localStorage["JFWL.gameInProgress"] = true;
+    
+    localStorage["JFWL.maxLevel"] = JFWL.maxLevel;
+    localStorage["JFWL.paused"] = JFWL.paused;
+    localStorage["JFWL.onMenuScreen"] = JFWL.onMenuScreen;
+    localStorage["JFWL.wonGame"] = JFWL.wonGame;
+    localStorage["JFWL.level"] = JFWL.level;
+
+    localStorage["JFWL.graph"] = JSON.stringify(JFWL.graph);
+}
+
+JFWL.startSession = function(){
+
+	JFWL.canvas = document.getElementById("demoCanvas");
+	JFWL.ctx = JFWL.canvas.getContext("2d");
+	
+	var w = JFWL.canvas.width;
+	var h = JFWL.canvas.height;
+
+	JFWL.renderBox = [30,30,w-30,h-30];
+
+	JFWL.loadGameState();
+
+	if(!JFWL.gameInProgress){
+		JFWL.onMenuScreen = true;
+		JFWL.startGame();
+	}else{
+		JFWL.hoverNode  = -1;
+		JFWL.dragNode   = -1;
+
+	JFWL.pauseOptionOverIndex = -1;
+		JFWL.dirtyCanvas = true;
+	}
+
+	JFWL.updateLevelDisplay();
+
+	JFWL.initEvents();	
+}
+
+JFWL.internalToRenderSpace = function(x,y){
+	var xRender = (x + 1) * JFWL.getRenderBoxWidth() / 2  + JFWL.renderBox[0];
+	var yRender = (y + 1) * JFWL.getRenderBoxHeight() / 2 + JFWL.renderBox[1];
+	return [xRender,yRender];
+};
+
+JFWL.renderToInternalSpace = function(x,y){
+	var xInternal = 2 * (x - JFWL.renderBox[0]) / JFWL.getRenderBoxWidth()  - 1;
+	var yInternal = 2 * (y - JFWL.renderBox[1]) / JFWL.getRenderBoxHeight() - 1;
+	return [xInternal,yInternal];
+};
+
+JFWL.arrayColorToString = function(color){
+	return "rgb("+Math.round(color[0])+","+Math.round(color[1])+","+Math.round(color[2])+")";
+};
+
+JFWL.blendColors = function(color1,color2,alpha,mode){
+	var newColor = [];
+
+	//Normal mode for now
+	newColor[0] = (1-alpha)*color1[0]+alpha*color2[0];
+	newColor[1] = (1-alpha)*color1[1]+alpha*color2[1];
+	newColor[2] = (1-alpha)*color1[2]+alpha*color2[2];
+	return newColor;
+};
+
+JFWL.getRenderBoxWidth  = function(){return JFWL.renderBox[2] - JFWL.renderBox[0];};
+JFWL.getRenderBoxHeight = function(){return JFWL.renderBox[3] - JFWL.renderBox[1];};
+JFWL.mouseDown = function(){return JFWL.mouse === "down";};
+JFWL.mouseUp = function(){return JFWL.mouse === "up";};
 
 JFWL.reDraw = function(){
 	var context = JFWL.ctx;
@@ -441,7 +443,7 @@ JFWL.drawButtons = function(){
 
 
 		ctx.font = "12pt " + JFWL.font;
-		ctx.fillStyle = 'fff';
+		ctx.fillStyle = 'rgb(255,255,255)';
 		ctx.fillText(option.text,option.left,option.top);
 	}
 
@@ -564,7 +566,7 @@ JFWL.initEvents = function(){
 		if(JFWL.dragNode >= 0){
 			$('body').css('cursor', 'move');
 		}else if(JFWL.hoverNode >= 0 || JFWL.inGameButtonOverIndex >= 0){
-			$('body').css('cursor', 'hand');
+			$('body').css('cursor', 'pointer');
 		}else{
 			$('body').css('cursor', 'default');
 		}
@@ -701,7 +703,7 @@ JFWL.pausedMouseMove = function(x,y){
 		if(x > option.left && x < option.left + option.width){
 			if(y > option.top && y < option.top + option.height){
 				JFWL.pauseOptionOverIndex = i;
-				$('body').css('cursor', 'hand');
+				$('body').css('cursor', 'pointer');
 			}
 		}
 	}
@@ -775,7 +777,7 @@ JFWL.menuMouseMove = function(x,y){
 		if(x > option.left && x < option.left + option.width){
 			if(y > option.top && y < option.top + option.height){
 				JFWL.menuOptionOverIndex = i;
-				$('body').css('cursor', 'hand');
+				$('body').css('cursor', 'pointer');
 			}
 		}
 	}
@@ -819,6 +821,7 @@ JFWL.menuMouseDown = function(x,y){
 
 JFWL.drawBackground = function(){
 	var ctx = JFWL.ctx;
+	ctx.save();
 
 	//ctx.fillStyle = "rgba(255,255,255,1)";
 	
@@ -957,6 +960,8 @@ JFWL.drawBackground = function(){
     ctx.strokeStyle = '000';
     ctx.lineWidth = 3;
     ctx.stroke();
+
+    ctx.restore();
 };
 
 JFWL.pauseScreen = function(){
@@ -1037,7 +1042,7 @@ JFWL.pauseScreen = function(){
 	ctx.textAlign = 'start';
 	ctx.textBaseline = 'top';
 
-	ctx.fillStyle = 'fff';
+	ctx.fillStyle = 'rgb(255,255,255)';
 	var yStart = y1;
 
 	option0.left = x1+(width-option0.width)/2;
@@ -1184,17 +1189,17 @@ JFWL.drawMenuScreen = function(){
 			ctx.font = '24px ' + JFWL.font;
 
 			if(option.value <= JFWL.maxLevel){
-				ctx.fillStyle = '050';
+				ctx.fillStyle = 'rgb(0,100,0)';
 			}else{
-				ctx.fillStyle = '500';	
+				ctx.fillStyle = 'rgb(100,0,0)';	
 			}
 			
 
 			ctx.fillRect(option.left,option.top,option.width,option.height);
-			ctx.fillStyle = 'fff';
+			ctx.fillStyle = 'rgb(255,255,255)';
 			ctx.fillText(option.text,option.textLeft,option.textTop);
 		}else{
-			ctx.fillStyle = 'fff';
+			ctx.fillStyle = 'rgb(255,255,255)';
 			ctx.font = '36px ' + JFWL.font;
 			ctx.fillText(option.text,option.left,option.top);
 		}
@@ -1237,7 +1242,7 @@ WebFontConfig = {
 	active: function() {
 		JFWL.font = "Libre Baskerville";
 		JFWL.dirtyCanvas = true;
-	},
+	}
   };
   (function() {
     var wf = document.createElement('script');

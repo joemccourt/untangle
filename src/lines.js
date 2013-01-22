@@ -2,6 +2,7 @@ function drawLine(line,color){
 	if(typeof color === "undefined"){color = '000';}
 
 	var ctx = JFWL.ctx;
+	ctx.save();
 
 	var canvasCoord1 = JFWL.internalToRenderSpace(line[0],line[1]);
 	var canvasCoord2 = JFWL.internalToRenderSpace(line[2],line[3]);
@@ -24,6 +25,8 @@ function drawLine(line,color){
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
     ctx.stroke();
+
+    ctx.restore();
 }
 
 JFWL.moveNode = function(node,x,y){
@@ -43,7 +46,7 @@ function drawNode(node,color){
 	var canvasCoord = JFWL.internalToRenderSpace(node.x,node.y);
 
 	var nodeRadius = JFWL.nodeRadius;
-	var nodeOutlineWidth = nodeRadius/10;
+	//var nodeOutlineWidth = nodeRadius/10;
 
 	var colorStr = 'rgba('+color[0]+','+color[1]+','+color[2]+',255)';
 	// create radial gradient
@@ -52,9 +55,9 @@ function drawNode(node,color){
 	// grd.addColorStop(1, 'rgba('+color[0]+','+color[1]+','+color[2]+',0)');
 	ctx.shadowColor = 'rgba(0,0,0,0.5)';
 
-	ctx.shadowOffsetX = nodeRadius/5;
-	ctx.shadowOffsetY = nodeRadius/5;
-	ctx.shadowBlur = 10;
+	// ctx.shadowOffsetX = nodeRadius/5;
+	// ctx.shadowOffsetY = nodeRadius/5;
+	// ctx.shadowBlur = 10;
 
 	ctx.beginPath();
 	ctx.arc(canvasCoord[0], canvasCoord[1], nodeRadius, 0, 2 * Math.PI, false);
