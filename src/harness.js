@@ -52,65 +52,78 @@ JFWL.inGameButtons = [
 JFWL.menuOptions = [
 						{
 							text:"Untangle",
-							operation:"none"
+							operation:"none",
+							fontSize:"24pt"
 						},
 						{
 							text:"Credits",
-							operation:"credits"
+							operation:"credits",
+							fontSize:"24pt"
 						},
 						{
 							text:"Select Level:",
-							operation:"none"
+							operation:"none",
+							fontSize:"24pt"
 						},
 						{
 							text:"1",
 							operation:"picklevel",
-							value:4
+							value:4,
+							fontSize:"18pt"
 						},
 						{
 							text:"2",
 							operation:"picklevel",
-							value:5
+							value:5,
+							fontSize:"18pt"
 						},
 						{
 							text:"3",
 							operation:"picklevel",
-							value:6
+							value:6,
+							fontSize:"18pt"
 						},
 						{
 							text:"4",
 							operation:"picklevel",
-							value:7
+							value:7,
+							fontSize:"18pt"
 						},
 						{
 							text:"5",
 							operation:"picklevel",
-							value:8
+							value:8,
+							fontSize:"18pt"
 						},
 						{
 							text:"6",
 							operation:"picklevel",
-							value:9
+							value:9,
+							fontSize:"18pt"
 						},
 						{
 							text:"7",
 							operation:"picklevel",
-							value:10
+							value:10,
+							fontSize:"18pt"
 						},
 						{
 							text:"8",
 							operation:"picklevel",
-							value:11
+							value:11,
+							fontSize:"18pt"
 						},
 						{
 							text:"9",
 							operation:"picklevel",
-							value:12
+							value:12,
+							fontSize:"18pt"
 						},
 						{
 							text:"10",
 							operation:"picklevel",
-							value:13
+							value:13,
+							fontSize:"18pt"
 						}
 					];
 
@@ -752,6 +765,7 @@ JFWL.pausedMouseDown = function(x,y){
 			JFWL.dirtyCanvas = true;
 			JFWL.onMenuScreen = true;
 		}
+		JFWL.saveGameState();
 	}
 };
 
@@ -816,6 +830,7 @@ JFWL.menuMouseDown = function(x,y){
 			JFWL.level = option.value;
 			JFWL.startGame();
 		}
+		JFWL.saveGameState();
 	}
 };
 
@@ -1043,11 +1058,11 @@ JFWL.pauseScreen = function(){
 	ctx.textBaseline = 'top';
 
 	ctx.fillStyle = 'rgb(255,255,255)';
-	var yStart = y1;
+	var yStart = y1+0.5*roughHeight;
 
 	option0.left = x1+(width-option0.width)/2;
 	option0.top = yStart+option0.height;
-	ctx.fillText(option0.text,option0.left,y1);
+	ctx.fillText(option0.text,option0.left,yStart);
 	yStart += option0.height;
 
 	for(i = 0; i < options.length; i++){
@@ -1080,9 +1095,10 @@ JFWL.drawMenuScreen = function(){
 	var ctx = JFWL.ctx;
 	ctx.save();
 
-	//Menu Box
-	ctx.font = '36px ' + JFWL.font;
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
 
+	//Menu Box
 	var x1 = JFWL.renderBox[0];
 	var y1 = JFWL.renderBox[1];
 	var x2 = JFWL.renderBox[2];
@@ -1099,8 +1115,9 @@ JFWL.drawMenuScreen = function(){
 	for(i = 0; i < JFWL.menuOptions.length; i++){
 		var option = JFWL.menuOptions[i];
 
+		ctx.font = option.fontSize + " " + JFWL.font;
 		if(option.operation == "picklevel"){
-			ctx.font = '24px ' + JFWL.font;
+			// ctx.font = '24px ' + JFWL.font;
 
 			option.width  = width * 0.1;
 			option.height = height * 0.1;
@@ -1129,21 +1146,21 @@ JFWL.drawMenuScreen = function(){
 			option.height -= 2*borderWidth;
 
 			var textLength = ctx.measureText(option.text).width;
-			var textHeight = 1.1 * ctx.measureText("m").width;
+			var textHeight = 1.1 * ctx.measureText("M").width;
 			option.textWidth  = textLength;
 			option.textHeight = textHeight;
 
-			option.textLeft = option.left + (option.width  - option.textWidth)/2;
-			option.textTop  = option.top  + (option.height - option.textHeight)/2;
+			option.textLeft = option.left + (option.width  - option.textWidth) / 2;
+			option.textTop  = option.top  + (option.height - option.textHeight) / 2;
 
 		}else{
-			ctx.font = '36px ' + JFWL.font;
+			// ctx.font = '36px ' + JFWL.font;
 			var length = ctx.measureText(option.text).width;
-			var roughHeight = 1.3 * ctx.measureText("m").width;
+			var roughHeight = 1.3 * ctx.measureText("M").width;
 			option.width = length;
 			option.height = roughHeight;
 
-			option.left = x1+(width-option.width)/2;
+			option.left = x1+(width-option.	width)/2;
 			option.top = lastTop;
 		
 			lastTop += option.height;
@@ -1167,9 +1184,6 @@ JFWL.drawMenuScreen = function(){
 	ctx.stroke();
 
 	//Draw options
-	ctx.textAlign = 'start';
-	ctx.textBaseline = 'top';
-
 	for(i = 0; i < JFWL.menuOptions.length; i++){
 		var option = JFWL.menuOptions[i];
 		
@@ -1186,8 +1200,9 @@ JFWL.drawMenuScreen = function(){
 		}
 
 		if(option.operation == "picklevel"){
-			ctx.font = '24px ' + JFWL.font;
+			ctx.font = option.fontSize + ' ' + JFWL.font;
 
+			//console.log(ctx.font);
 			if(option.value <= JFWL.maxLevel){
 				ctx.fillStyle = 'rgb(0,100,0)';
 			}else{
@@ -1197,14 +1212,13 @@ JFWL.drawMenuScreen = function(){
 
 			ctx.fillRect(option.left,option.top,option.width,option.height);
 			ctx.fillStyle = 'rgb(255,255,255)';
-			ctx.fillText(option.text,option.textLeft,option.textTop);
+
+			ctx.fillText(option.text,option.left+option.width/2,option.top+option.height/2);
 		}else{
 			ctx.fillStyle = 'rgb(255,255,255)';
-			ctx.font = '36px ' + JFWL.font;
-			ctx.fillText(option.text,option.left,option.top);
+			ctx.font = option.fontSize + ' ' + JFWL.font;
+			ctx.fillText(option.text,option.left+option.width/2,option.top+option.height/2);
 		}
-
-
 	}
 
 	ctx.restore();
