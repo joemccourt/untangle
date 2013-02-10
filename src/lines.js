@@ -226,13 +226,46 @@ function lineIntersectsLine(line1,line2){
 	
 	var denom = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);
 
-	//TODO: test correctly for vertical lines
-
+	//Lines are parallel
 	if(denom == 0){
 
-		//Lines are parallel
-		//TODO: test parallel lines intersection
-		return true;
+		if(y2 == y1){
+
+			//horizonal special case
+		}else{
+			var y01 = y1 - (x2-x1)/(y2-y1)*x1;
+			var y02 = y3 - (x4-x3)/(y4-y3)*x3;
+			
+			if(y01 != y02){
+
+				//Intercepts not equal
+				return false;
+			}
+
+			//Detect 1d intersection
+			if(x2 > x1){
+				if(x3 <= x2 && x3 >= x1 || x4 <= x2 && x4 >= x1){
+					return true;
+				}
+			}else{
+				if(x3 <= x1 && x3 >= x2 || x4 <= x1 && x4 >= x2){
+					return true;
+				}
+			}
+
+			if(x4 > x3){
+				if(x1 <= x4 && x1 >= x3 || x2 <= x4 && x2 >= x3){
+					return true;
+				}
+			}else{
+				if(x1 <= x3 && x1 >= x4 || x2 <= x3 && x2 >= x4){
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 	}
 
 	var px,py;
