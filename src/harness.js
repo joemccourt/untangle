@@ -321,7 +321,7 @@ JFWL.startSession = function(){
 	var w = JFWL.canvas.width;
 	var h = JFWL.canvas.height;
 
-	JFWL.renderBox = [30,30,w-30,h-30];
+	JFWL.renderBox = [20,20,w-20,h-20];
 
 	JFWL.loadGameState();
 
