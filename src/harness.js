@@ -1,6 +1,8 @@
 //JFWL vars
 var JFWL = {}; //Joe's Fun With Lines
 
+var kongregate = parent.kongregate;
+
 JFWL.startTime = (new Date()).getTime();
 JFWL.clockTime = 0;
 JFWL.refreshRate = 30;
@@ -1404,11 +1406,9 @@ JFWL.winGame = function(){
 	if(JFWL.level == JFWL.maxLevel){
 		JFWL.maxLevel++;
 
-// JFWL.menuOptions.push({
-// 							text:"Level: " + (JFWL.maxLevel-3),
-// 							operation:"picklevel",
-// 							value:JFWL.maxLevel
-// 						});
+		if(typeof kongregate !== "undefined"){
+			kongregate.stats.submit("Max Level",JFWL.maxLevel);
+		}
 
 	}
 
