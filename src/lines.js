@@ -512,6 +512,15 @@ function genGraphPlanarity(n){
 
 JFWL.shuffleGraph = function(){
 	var graph = JFWL.graph;
+	var aspect = JFWL.renderBox[2] / JFWL.renderBox[3];
+	
+	var radius = 0.8;
+
+	var rX = radius;
+	var rY = radius;
+
+	if(aspect > 1){ rX /= aspect; }
+	if(aspect < 1){ rY *= aspect; }
 
 	//Orient nodes in circle
 	var numNodes = graph.nodes.length;
@@ -525,8 +534,8 @@ JFWL.shuffleGraph = function(){
 		usedIndices.push(randomIndex);
 		// console.log(randomIndex, usedIndices);
 		var angle = i / numNodes * 2 * Math.PI;
-		graph.nodes[randomIndex].x = 0.8 * Math.cos(angle);
-		graph.nodes[randomIndex].y = 0.8 * Math.sin(angle);
+		graph.nodes[randomIndex].x = rX * Math.cos(angle);
+		graph.nodes[randomIndex].y = rY * Math.sin(angle);
 	}
 };
 
