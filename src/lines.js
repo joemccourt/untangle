@@ -226,12 +226,63 @@ function lineIntersectsLine(line1,line2){
 	
 	var denom = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);
 
-	//Lines are parallel
+	//Lines are parallel (Not well tested :-( )
 	if(denom == 0){
 
-		if(y2 == y1){
+		if(y2 == y1){ //Horizontal
+			if(y1 != y3){return false;} //Different heights
+
+			//Detect 1d intersection
+			if(x2 > x1){
+				if(x3 <= x2 && x3 >= x1 || x4 <= x2 && x4 >= x1){
+					return true;
+				}
+			}else{
+				if(x3 <= x1 && x3 >= x2 || x4 <= x1 && x4 >= x2){
+					return true;
+				}
+			}
+
+			if(x4 > x3){
+				if(x1 <= x4 && x1 >= x3 || x2 <= x4 && x2 >= x3){
+					return true;
+				}
+			}else{
+				if(x1 <= x3 && x1 >= x4 || x2 <= x3 && x2 >= x4){
+					return true;
+				}
+			}
+
+			return false;
 
 			//horizonal special case
+		}else if(x1 == x2){ //Vertical line
+			if(x1 != x3){return false;}
+
+
+			//Detect 1d intersection
+			if(y2 > y1){
+				if(y3 <= y2 && y3 >= y1 || y4 <= y2 && y4 >= y1){
+					return true;
+				}
+			}else{
+				if(y3 <= y1 && y3 >= y2 || y4 <= y1 && y4 >= y2){
+					return true;
+				}
+			}
+
+			if(y4 > y3){
+				if(y1 <= y4 && y1 >= y3 || y2 <= y4 && y2 >= y3){
+					return true;
+				}
+			}else{
+				if(y1 <= y3 && y1 >= y4 || y2 <= y3 && y2 >= y4){
+					return true;
+				}
+			}
+
+			return false;
+
 		}else{
 			var y01 = y1 - (x2-x1)/(y2-y1)*x1;
 			var y02 = y3 - (x4-x3)/(y4-y3)*x3;
