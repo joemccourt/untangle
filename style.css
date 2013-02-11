@@ -1,12 +1,14 @@
 canvas{
-	border:0px;
+	border:0;
 }
 
 body{
-	background-color:#888;
-	text-align: center;
+	background-color:'rgba(128,128,128,0)';
+	border:0;
+	margin:0;
 }
 
 div{
 	margin:0;
+	padding:0;
 }
