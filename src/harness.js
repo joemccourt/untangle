@@ -222,9 +222,9 @@ window.onload = function(){
 				if(JFWL.checkWon && !JFWL.wonGame){
 					JFWL.checkWon = false;
 					if(JFWL.numIntersections){
-						console.log("Playing...");
+						// console.log("Playing...");
 					}else{
-						console.log("You Win!");
+						// console.log("You Win!");
 						JFWL.winGame();
 					}
 				}
@@ -624,7 +624,7 @@ JFWL.initEvents = function(){
 	});
 
 	$(document).keypress(function (e) {
-		console.log(e.charCode);
+		// console.log(e.charCode);
 
 		//112 = 'p'
 		//114 = 'r'
@@ -641,9 +641,9 @@ JFWL.initEvents = function(){
 				JFWL.paused = false;
 			}
 		}else if(e.charCode == 114){
-			JFWL.dirtyCanvas = true;
-			JFWL.startGame();
-			JFWL.paused = false;
+			// JFWL.dirtyCanvas = true;
+			// JFWL.startGame();
+			// JFWL.paused = false;
 		}else if(e.charCode == 115){
 			// JFWL.dirtyCanvas = true;
 			// JFWL.shuffleGraph();
