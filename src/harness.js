@@ -1407,7 +1407,7 @@ JFWL.winGame = function(){
 		JFWL.maxLevel++;
 
 		if(typeof kongregate !== "undefined"){
-			kongregate.stats.submit("Max Level",JFWL.maxLevel);
+			kongregate.stats.submit("Max Level",JFWL.maxLevel-4);
 		}
 
 	}
