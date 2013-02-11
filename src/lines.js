@@ -226,13 +226,97 @@ function lineIntersectsLine(line1,line2){
 	
 	var denom = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);
 
-	//TODO: test correctly for vertical lines
-
+	//Lines are parallel (Not well tested :-( )
 	if(denom == 0){
 
-		//Lines are parallel
-		//TODO: test parallel lines intersection
-		return true;
+		if(y2 == y1){ //Horizontal
+			if(y1 != y3){return false;} //Different heights
+
+			//Detect 1d intersection
+			if(x2 > x1){
+				if(x3 <= x2 && x3 >= x1 || x4 <= x2 && x4 >= x1){
+					return true;
+				}
+			}else{
+				if(x3 <= x1 && x3 >= x2 || x4 <= x1 && x4 >= x2){
+					return true;
+				}
+			}
+
+			if(x4 > x3){
+				if(x1 <= x4 && x1 >= x3 || x2 <= x4 && x2 >= x3){
+					return true;
+				}
+			}else{
+				if(x1 <= x3 && x1 >= x4 || x2 <= x3 && x2 >= x4){
+					return true;
+				}
+			}
+
+			return false;
+
+			//horizonal special case
+		}else if(x1 == x2){ //Vertical line
+			if(x1 != x3){return false;}
+
+
+			//Detect 1d intersection
+			if(y2 > y1){
+				if(y3 <= y2 && y3 >= y1 || y4 <= y2 && y4 >= y1){
+					return true;
+				}
+			}else{
+				if(y3 <= y1 && y3 >= y2 || y4 <= y1 && y4 >= y2){
+					return true;
+				}
+			}
+
+			if(y4 > y3){
+				if(y1 <= y4 && y1 >= y3 || y2 <= y4 && y2 >= y3){
+					return true;
+				}
+			}else{
+				if(y1 <= y3 && y1 >= y4 || y2 <= y3 && y2 >= y4){
+					return true;
+				}
+			}
+
+			return false;
+
+		}else{
+			var y01 = y1 - (x2-x1)/(y2-y1)*x1;
+			var y02 = y3 - (x4-x3)/(y4-y3)*x3;
+			
+			if(y01 != y02){
+
+				//Intercepts not equal
+				return false;
+			}
+
+			//Detect 1d intersection
+			if(x2 > x1){
+				if(x3 <= x2 && x3 >= x1 || x4 <= x2 && x4 >= x1){
+					return true;
+				}
+			}else{
+				if(x3 <= x1 && x3 >= x2 || x4 <= x1 && x4 >= x2){
+					return true;
+				}
+			}
+
+			if(x4 > x3){
+				if(x1 <= x4 && x1 >= x3 || x2 <= x4 && x2 >= x3){
+					return true;
+				}
+			}else{
+				if(x1 <= x3 && x1 >= x4 || x2 <= x3 && x2 >= x4){
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 	}
 
 	var px,py;
@@ -428,6 +512,15 @@ function genGraphPlanarity(n){
 
 JFWL.shuffleGraph = function(){
 	var graph = JFWL.graph;
+	var aspect = JFWL.renderBox[2] / JFWL.renderBox[3];
+	
+	var radius = 0.8;
+
+	var rX = radius;
+	var rY = radius;
+
+	if(aspect > 1){ rX /= aspect; }
+	if(aspect < 1){ rY *= aspect; }
 
 	//Orient nodes in circle
 	var numNodes = graph.nodes.length;
@@ -441,8 +534,8 @@ JFWL.shuffleGraph = function(){
 		usedIndices.push(randomIndex);
 		// console.log(randomIndex, usedIndices);
 		var angle = i / numNodes * 2 * Math.PI;
-		graph.nodes[randomIndex].x = 0.8 * Math.cos(angle);
-		graph.nodes[randomIndex].y = 0.8 * Math.sin(angle);
+		graph.nodes[randomIndex].x = rX * Math.cos(angle);
+		graph.nodes[randomIndex].y = rY * Math.sin(angle);
 	}
 };
 
